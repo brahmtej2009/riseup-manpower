@@ -1,0 +1,491 @@
+================================================================================
+RISE UP MANPOWER - WEBSITE & ADMIN SYSTEM
+PROJECT SCOPE / DELIVERABLES DOCUMENT
+================================================================================
+
+Prepared for      : Rise Up Manpower
+Document version  : 2.0
+Date              : 14 September 2026
+Technology        : Next.js (React), TypeScript, SQLite database, self-hosted
+
+
+--------------------------------------------------------------------------------
+1. OVERVIEW
+--------------------------------------------------------------------------------
+
+A complete website and back-office system for a manpower recruitment firm.
+
+The public website lets two kinds of visitors approach the company:
+
+    - EMPLOYERS   who need workers / staff supplied to them
+    - CANDIDATES  who are looking for a job placement
+
+Neither type of visitor creates an account or logs in anywhere. They simply
+fill a form on the website. The form lands in the company private admin panel,
+where staff review it, approve it, and it becomes a permanent contact record in
+the company database.
+
+All administration is done from a private admin panel at the /admin address,
+protected by user ID and password. No visitor can ever reach it.
+
+
+--------------------------------------------------------------------------------
+2. PUBLIC WEBSITE - PAGE BY PAGE
+--------------------------------------------------------------------------------
+
+2.1  HEADER (every page)
+     - Company square logo, uploaded and changed from the admin panel.
+     - Navigation menu: Home, Our Team, Announcements, Contact.
+     - Two action buttons: "For Employers" and "For Candidates".
+     - Sticky header that shrinks slightly as the page scrolls.
+     - Height and spacing adapt to the screen so nothing is ever cut off on
+       small laptops, tablets or phones.
+     - Full mobile menu (slide-in panel) on phones.
+     - Top strip showing phone number, email and office timings.
+
+2.2  HOME PAGE
+
+     Section 1 - Hero
+       - Headline in two parts, both editable from the admin panel.
+       - Two buttons, visible immediately without scrolling:
+              * I need manpower        (employer form)
+              * I am looking for a job (candidate form)
+       - Below those, a quieter link to the latest announcement.
+       - Live counters showing:
+              * Employers served
+              * Candidates placed
+              * Years in operation
+              * Industries covered
+         Counted automatically from the database, and each one can be
+         overridden with a fixed figure from Settings.
+       - The whole hero fits inside one screen height on any device, so the
+         two buttons and the figures are never below the fold.
+
+     Section 2 - Latest announcements
+       - The three most recent announcements, with cover image and date.
+
+     Section 3 - Our team
+       - A row of team member cards, managed from the admin panel.
+
+     Section 4 - Social media
+       - Links to Facebook, Instagram, LinkedIn, YouTube and X.
+
+     Section 5 - Footer
+       - Company details, quick links, address, phone, email, social icons,
+         office timings and a WhatsApp button.
+
+2.3  EMPLOYER REGISTRATION FORM   (/register/employer)
+
+     A multi-step form collecting:
+       - Company name, type of business / industry, year established
+       - Company website, GST number / registration number
+       - Contact person name, designation
+       - Phone, alternate phone, email
+       - Complete address: address line, city, district, state, PIN code
+       - Type of manpower required (multiple choice)
+       - Number of workers required
+       - Skill level required, shift / duty pattern
+       - Salary / wage range offered
+       - Work location, accommodation and food provided yes-no
+       - When required by (urgency)
+       - Additional requirements (free text)
+
+     Progress bar, validation on every field, and a confirmation screen with a
+     reference number after submission.
+
+2.4  CANDIDATE REGISTRATION FORM   (/register/candidate)
+
+     A multi-step form collecting:
+       - Full name, father / husband name, date of birth, gender
+       - Phone, alternate phone, email
+       - Present address: address, city, district, state, PIN code
+       - Highest qualification, additional certification / ITI / diploma
+       - Job category applied for, skills
+       - Total years of experience, previous employers
+       - Current and expected salary
+       - Preferred work locations, willing to relocate yes-no
+       - Passport availability, driving licence, languages known
+       - Availability to join (immediate / notice period)
+       - Resume file upload (PDF / DOC) and photograph upload
+
+     Progress bar, validation, and a confirmation screen with a reference
+     number after submission.
+
+2.5  ANNOUNCEMENTS   (/announcements  and  /announcements/<title>)
+     - Public listing of all company announcements and notices, newest first.
+     - Search box and category filter.
+     - Each announcement has its own page with full formatted content, image
+       gallery, and share buttons.
+     - Announcements can be marked "Pinned" to stay at the top, and "Urgent"
+       to show a highlighted badge.
+
+2.6  OUR TEAM   (/team, and a row on the home page)
+     - A row of team member cards: square photograph, name, designation and
+       an optional short line about the person.
+     - Managed entirely from the admin panel: add a name, upload a photo,
+       set the designation, and the member appears on the website
+       immediately. Drag to reorder, hide or delete at any time.
+     - The row scrolls sideways on phones and lays out as a grid on desktop.
+
+2.7  CONTACT PAGE   (/contact)
+     - Contact form: name, email, phone, subject, message.
+     - Submitted messages arrive in the admin panel Messages section.
+     - Office address block, phone, email, working hours, Google Map embed.
+
+2.8  SITE-WIDE
+     - Deep navy and blue throughout, with a square company logo that is also
+       used as the browser tab icon. Colours are changeable from the admin
+       panel without a developer.
+     - The site responds to the mouse: cards tilt gently toward the cursor,
+       buttons carry a highlight that follows the pointer, the hero background
+       drifts against it, team photographs pan and reveal the role, and the
+       figures lift when pointed at. All of it switches off on phones and for
+       anyone who has asked for reduced motion.
+     - Fully responsive - phone, tablet, laptop, large monitor.
+     - Modern, restrained animations: fade and slide on scroll, counter
+       count-up, smooth hover states, page transitions. Deliberately light -
+       the site never feels busy or slow.
+     - Search-engine friendly: page titles, descriptions, social share
+       previews, sitemap.xml and robots.txt generated automatically.
+     - Fast loading, image optimisation, accessible markup.
+
+
+     NOTE ON SIZE
+     The public website is deliberately small: a home page, the two
+     registration forms, announcements, the team page and contact. There is no
+     marketing filler. Every word on it is editable from the admin panel, and
+     further pages can be added later if the company wants them.
+
+
+--------------------------------------------------------------------------------
+2A. APPEARANCE: LIGHT AND DARK MODE, GALLERY, CLIENT LOGOS
+--------------------------------------------------------------------------------
+
+2A.1 TWO COMPLETE MODES
+     - The website has a light version and a dark version. Light is the one it
+       opens in by default.
+     - Both are proper designs, not one inverted. Every surface, border and
+       piece of text has a value in each.
+     - A small sun and moon button in the header lets a visitor switch. Their
+       choice is kept in their own browser only. Nothing is sent to the server
+       and no cookie is set.
+     - The company chooses, from the admin panel: which mode a first-time
+       visitor arrives on, whether a phone already set to dark mode wins over
+       that, and whether the switch is shown at all.
+     - The mode is applied before the page is drawn, so a visitor never sees it
+       flash from one to the other.
+     - The brand colour chosen in the admin panel is used in both modes.
+     - The admin panel itself always stays light, whichever mode the public
+       website is in.
+
+2A.2 THE HOME PAGE
+     - The heading sits on the page beside a tall photo frame, rather than on
+       top of a dark photograph. This is why the front page is no longer black.
+     - The photographs cross-fade with a slow zoom, and drift slightly against
+       the mouse.
+     - "What we do" is shown on the home page, taken from the Services screen
+       in the admin panel, with each service icon, summary and key points.
+     - A thin line across the top of the header shows reading position.
+     - All movement stops for a visitor whose device asks for reduced motion,
+       and none of it runs on a touch screen where there is no mouse.
+
+2A.3 PHOTO GALLERY
+     - Managed from Admin > Photo gallery.
+     - Several photographs can be uploaded at once. Each is resized and
+       optimised automatically.
+     - Each one can be given a title and a caption, moved up or down, hidden
+       without deleting, or removed.
+     - On the home page they appear as a grid. Selecting one opens it full
+       size, with the arrow keys and Escape working as expected.
+     - How many appear on the home page, and the heading above them, are set on
+       the Themes screen.
+     - With no photographs added, the section does not appear at all.
+
+2A.4 MOVING ROW OF CLIENT LOGOS
+     - Managed from Admin > Themes > Row add-ons > Client logos.
+     - A row of client logos that slides steadily to the left and never stops.
+     - Every logo is scaled to one height and keeps its own width, so a long
+       wordmark and a square badge sit together evenly however they were
+       supplied. Nothing has to be prepared at a particular size.
+     - The height, the speed of one full pass, and whether the logos are shown
+       in grey until pointed at, are all settings.
+     - Each logo can carry a website address, which makes it a link.
+     - With no logos added, the row does not appear.
+
+
+--------------------------------------------------------------------------------
+3. ADMIN PANEL  (private - /admin)
+--------------------------------------------------------------------------------
+
+3.0  THEMES SCREEN  (/admin/themes)
+     - One screen for everything about how the website looks, with the live
+       website shown beside the controls.
+     - The preview can be viewed at full width, tablet width or phone width,
+       and in light or dark mode, without leaving the screen.
+     - "Edit text on the page": every heading, button label and intro that can
+       be changed is outlined in the preview. Select one, change it, save, and
+       the preview reloads showing it live on the website.
+     - Grouped into Appearance, Home page, Figures and Row add-ons, so nothing
+       is crowded onto one long list.
+     - Row add-ons links through to the Photo gallery and the Client logos
+       screens, showing how many are in each and whether it is switched on.
+     - It has its own permission, so a member of staff can be allowed to change
+       the wording on the website without being given the run of Settings.
+
+3.1  LOGIN AND SECURITY
+     - Separate login page at /admin/login with its own user ID and password.
+     - Passwords stored using scrypt hashing with a per-user salt - the actual
+       password is never stored anywhere and cannot be read back, not even by
+       the developer or from the database file.
+     - Sessions held in a signed, HTTP-only, same-site cookie. Sessions expire
+       and can be revoked.
+     - Brute-force protection: repeated wrong passwords lock the account
+       temporarily and the attempt is logged.
+     - Every admin page is protected at the server level, so no admin page or
+       admin data can ever be reached without a valid session.
+     - Full audit log of who did what and when.
+
+3.2  DASHBOARD
+     - Counts of new submissions, total contacts, unread messages, published
+       announcements.
+     - Recent activity feed, quick-action buttons, and simple charts of
+       submissions over time.
+
+3.3  NEW SUBMISSIONS  (the review queue)
+     - Everything submitted through the two public forms lands here first.
+     - Two tabs:   EMPLOYER SUBMISSIONS   |   CANDIDATE SUBMISSIONS
+     - Each row shows name, phone, city, date and status.
+     - Open a submission to see every field submitted, plus uploaded resume
+       and photograph.
+     - Actions:  APPROVE  |  REJECT  |  DELETE
+     - Pressing APPROVE converts the submission into a permanent contact
+       record and moves it to the Contacts section. Rejected entries are kept
+       separately for records, with the reason noted.
+     - Bulk select, search, filter by status / date / city, and CSV export.
+
+3.4  CONTACTS
+     - Two separate sections in the admin header:
+              * EMPLOYER CONTACTS
+              * CANDIDATE CONTACTS
+     - Each approved record becomes a full contact profile with all its
+       submitted details, editable by staff.
+     - Status tracking per contact (New / In Progress / Placed / Closed).
+     - Tagging, search, filters, sorting and CSV export.
+
+3.5  PRIVATE NOTES ON CONTACTS
+     - Any staff member with permission can add notes to a contact.
+     - Notes show who wrote them and when.
+     - Notes can be deleted (own notes, or any note with higher permission).
+     - Notes are strictly internal - never visible on the public website.
+
+3.6  ANNOUNCEMENTS MANAGER  (with full rich text editor)
+
+     A proper word-processor style editor, including:
+              * Bold, italic, underline, strikethrough
+              * Heading levels 1 to 4, and normal paragraph text
+              * Font size - small, normal, large, extra large, and custom
+              * Text colour and highlight colour
+              * Bullet lists, numbered lists, checklists
+              * Quote blocks, code blocks, horizontal rules
+              * Text alignment: left, centre, right, justify
+              * Tables with add / remove rows and columns
+              * Links
+              * Images - insert by upload, by drag-and-drop onto the editor,
+                or simply by pressing Ctrl+V to paste an image copied from
+                anywhere (screenshot, WhatsApp, another website)
+              * Image gallery blocks - multiple images shown as a grid
+              * Undo / redo, and a full-screen writing mode
+
+     - Cover image for each announcement.
+     - Draft / Published status, scheduled publish date.
+     - Pin to top, mark as urgent, category and tags.
+     - Live preview exactly as it will appear on the website.
+     - Auto-save while typing so nothing is ever lost.
+
+3.7  MEDIA LIBRARY
+     - All uploaded images and files in one place.
+     - Upload, search, copy link, reuse in announcements, delete.
+     - Images automatically compressed and resized on upload so the website
+       stays fast.
+
+3.8  MESSAGES  (from the Contact Us page)
+     - Inbox of all messages received from the website contact form.
+     - Read / unread, mark important, archive, delete.
+     - Reply details and internal notes per message.
+
+3.9  TEAM MANAGER  (controls the "Our Team" row on the website)
+     - Add a team member with just a name, a designation and a square photo.
+     - The photo is automatically cropped square and optimised.
+     - Optional: short bio, email, phone, LinkedIn link.
+     - Drag to reorder; show / hide without deleting; delete permanently.
+     - Changes appear on the public website immediately.
+
+3.10 USERS & PERMISSIONS
+     - Create staff accounts from the admin panel.
+     - Every single capability in the system has its own tick-box, so each
+       staff member gets exactly the access the company wants to give:
+
+         Dashboard        : view
+         Submissions      : view, approve, reject, delete, export
+         Contacts         : view, create, edit, delete, export
+         Notes            : view, add, delete own, delete anyone
+         Announcements    : view, create, edit, publish, delete
+         Team             : view, add, edit, delete
+         Media            : view, upload, delete
+         Messages         : view, manage, delete
+         Users            : view, create, edit, delete
+         Settings         : view, edit
+         System           : backups, updates, audit log
+
+     - Pre-built roles (Super Admin, Manager, Staff, Viewer) for quick setup,
+       with the freedom to customise any account individually.
+     - Enable / disable an account without deleting it.
+     - Password reset by an administrator.
+     - The Super Admin account can never be locked out or deleted.
+
+3.11 SETTINGS - EVERYTHING ON THE SITE IS CONTROLLABLE
+     - Branding    : square logo upload, favicon, colour theme
+     - Company     : name, tagline, description, licence / registration numbers
+     - Contact     : phone numbers, email addresses, WhatsApp, full address,
+                     map link, working hours
+     - Statistics  : automatic from database, OR manual override per figure
+     - Homepage    : hero heading, sub-heading, button labels, all section
+                     headings and intro text
+     - Services    : add / edit / reorder / delete
+     - Social media: Facebook, Instagram, LinkedIn, YouTube, X / Twitter,
+                     WhatsApp - links, plus embedded feeds
+     - Forms       : job categories, industries, states list, and every other
+                     dropdown used in the public forms
+     - SEO         : meta titles, descriptions, share image, analytics code
+     - Email       : SMTP settings so the company gets an email alert whenever
+                     a new form or message arrives
+     - System      : GitHub repository address and update branch
+
+
+2.11 SOCIAL MEDIA POSTS (optional)
+     - Recent Instagram posts can be pulled in automatically and shown on the
+       home page, refreshed hourly.
+     - Requires an access token from the company Instagram business account,
+       entered in Settings. A "Test the connection" button confirms it works.
+     - With no token the section simply does not appear.
+
+2.12 BEING FOUND ONLINE
+     - Full structured data for search engines, so the company can appear with
+       its address, phone number, opening hours and services in results.
+     - A dedicated machine-readable page at /llms.txt written for AI assistants
+       (ChatGPT, Claude, Perplexity, Gemini). When somebody asks an assistant to
+       recommend a staffing firm, this is what it reads.
+     - Those assistants are explicitly allowed to read the site, which can be
+       switched off from Settings at any time.
+     - Everything they read is taken from what the company has entered, so no
+       assistant can repeat a claim the company never made.
+     - A questions-and-answers section in Settings feeds both search engine rich
+       results and the AI assistant page.
+
+
+--------------------------------------------------------------------------------
+4. DEMO DATA
+--------------------------------------------------------------------------------
+
+     Command:   npm run seed
+
+     - Automatically detects if the website is empty, and if so fills it with
+       realistic demo data: sample employers, sample candidates, sample
+       announcements with images, sample messages, services and settings.
+     - Useful for showing the client a fully populated website before real data
+       exists.
+     - It refuses to run if real data is already present, so live data can
+       never be overwritten by accident.
+       (npm run seed:force overrides this deliberately.)
+
+
+--------------------------------------------------------------------------------
+5. UPDATE SYSTEM  (safe, reversible updates from the code repository)
+--------------------------------------------------------------------------------
+
+     Command:   npm run update          (also available as a button in admin)
+     Command:   npm run update:check    (only checks, changes nothing)
+
+     The update runs as a strict sequence, and stops safely at any failure:
+
+       Step 1  Check the GitHub repository for a newer version.
+       Step 2  BACK UP THE DATABASE and all uploaded files to a timestamped
+               backup folder, before touching anything.
+       Step 3  Record the exact current code version, so it can be returned to.
+       Step 4  Download the new code.
+       Step 5  Install any new packages.
+       Step 6  RUN DATABASE MIGRATIONS - new tables, new columns and new
+               settings are added to the existing database without touching,
+               deleting or resetting any existing data.
+       Step 7  Build the new version.
+       Step 8  Verify the build and the database.
+       Step 9  Switch over and restart.
+
+     IF ANY STEP FAILS:
+       - The system automatically returns the code to the exact previous
+         version,
+       - restores the database from the backup taken in Step 2,
+       - restarts on the old working version,
+       - and writes a full log of what happened.
+       The website is never left broken or half-updated.
+
+     Additional safety:
+       - The database is NEVER deleted, reset or replaced by an update.
+       - Migrations are versioned and each one runs only once, ever.
+       - Each migration runs inside a transaction - if it errors, it is rolled
+         back completely.
+       - A checkpoint backup is kept before every migration run.
+       - Old backups are retained (configurable, default: last 10).
+       - npm run backup and npm run restore are available at any time.
+
+
+--------------------------------------------------------------------------------
+6. TECHNICAL SUMMARY
+--------------------------------------------------------------------------------
+
+     Framework        : Next.js 15 (React 19) with TypeScript
+     Styling          : Tailwind CSS
+     Animation        : Framer Motion - deliberately restrained
+     Editor           : TipTap rich text editor
+     Database         : SQLite (single file, easy to back up), with a versioned
+                        migration system
+     Passwords        : scrypt hashing, per-user salt
+     Sessions         : signed HTTP-only cookies
+     File uploads     : stored on the server, images auto-optimised
+     Hosting          : runs on any Node.js server / VPS. No monthly database
+                        or third-party service charges.
+
+
+--------------------------------------------------------------------------------
+7. WHAT THE COMPANY CAN DO WITHOUT A DEVELOPER
+--------------------------------------------------------------------------------
+
+     - Change the logo
+     - Change every piece of text on the website
+     - Change phone numbers, email, address, working hours
+     - Add, edit and remove services
+     - Change the statistics shown on the homepage
+     - Post announcements daily, with photos and formatting
+     - Add team members with a photo, and have them appear on the site at once
+     - Add and remove staff accounts, and control exactly what each one can do
+     - Review, approve and manage all employer and candidate registrations
+     - Keep private notes on any contact
+     - Read and manage all contact-form messages
+     - Export any list to Excel / CSV
+     - Take a backup, and run an update
+
+
+--------------------------------------------------------------------------------
+8. NOT INCLUDED (unless requested separately)
+--------------------------------------------------------------------------------
+
+     - Visitor login / registration accounts (deliberately excluded - visitors
+       only fill a form; the company contacts them by phone or email)
+     - Online payments
+     - SMS / WhatsApp automated sending (links are provided; automated sending
+       requires a paid gateway)
+     - Domain purchase and server hosting charges
+
+================================================================================
+END OF DOCUMENT
+================================================================================
