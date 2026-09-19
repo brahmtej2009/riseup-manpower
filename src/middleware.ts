@@ -39,12 +39,13 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next's own assets, the favicon, and the upload route.
+    // Everything except Next's own assets, the favicon, and the routes that
+    // receive files (uploads and the two registration forms).
     //
     // Next copies the body of every request that passes through middleware,
     // and cuts it off at 10 MB. A large photo arriving cut off made uploads
     // hang, so uploads skip the middleware and the route makes the same
     // same-site check itself.
-    '/((?!_next/static|_next/image|favicon.ico|api/admin/upload).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/admin/upload|api/register).*)',
   ],
 };

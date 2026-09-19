@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isSameOrigin } from '@/lib/same-origin';
 import { db } from '@/lib/db';
 import { candidateSchema, fieldErrors } from '@/lib/validation';
 import { clientIp, userAgent, rateLimit, nextRef } from '@/lib/server-utils';
@@ -8,6 +9,11 @@ import { notifyNewSubmission } from '@/lib/mailer';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  // Outside the middleware (see its matcher), so the same-site check is here.
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Request blocked: it did not come from this website.' }, { status: 403 });
+  }
+
   const ip = await clientIp();
   const ua = await userAgent();
 
