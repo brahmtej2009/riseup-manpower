@@ -62,7 +62,20 @@ export async function postUpload(fd: FormData): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    return await fetch('/api/admin/upload', { method: 'POST', body: fd, signal: controller.signal });
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd, signal: controller.signal });
+    // A 413 comes from a web server in front of the site (nginx allows only
+    // 1 MB unless told otherwise), as an HTML page rather than our JSON.
+    if (res.status === 413) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'The web server in front of the site refused a file this size. ' +
+            'Raise client_max_body_size in nginx (see the README), or try a smaller picture.',
+        }),
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    return res;
   } catch (err) {
     const timedOut = (err as Error).name === 'AbortError';
     return new Response(

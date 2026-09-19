@@ -227,6 +227,14 @@ needed - the app reads the proxy's own `x-forwarded-proto` header and sets
 the session cookie correctly on its own. Only set `SESSION_COOKIE_SECURE` in
 `.env` if a proxy is being used that does **not** send that header.
 
+**nginx only lets 1 MB through by default**, which refuses most photos and
+resumes before they reach the site. Raise it once on the server:
+
+```bash
+echo 'client_max_body_size 25m;' > /etc/nginx/conf.d/upload-size.conf
+nginx -t && systemctl reload nginx
+```
+
 Take the domain (and only the domain) that the site is actually reached on,
 and put it in `NEXT_PUBLIC_SITE_URL` - it is used for the sitemap, share
 links and SEO tags.
