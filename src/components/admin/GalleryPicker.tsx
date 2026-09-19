@@ -1,5 +1,6 @@
 'use client';
 
+import { postUpload } from '@/lib/upload-client';
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,7 +47,7 @@ export function GalleryPicker({
         fd.append('folder', folder);
         fd.append('maxSize', '2200');
 
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const res = await postUpload(fd);
         const body = await res.json().catch(() => ({}));
 
         if (!res.ok) {

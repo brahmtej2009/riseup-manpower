@@ -1,5 +1,6 @@
 'use client';
 
+import { postUpload } from '@/lib/upload-client';
 import { useRef, useState } from 'react';
 import { ImagePlus, Loader2, X, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -49,7 +50,7 @@ export function ImagePicker({
       fd.append('maxSize', String(maxSize));
       if (square) fd.append('square', '1');
 
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const res = await postUpload(fd);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.error || 'That image could not be uploaded.');

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiUser, writeAudit } from '@/lib/auth';
 import { storeImage, storeDocument } from '@/lib/uploads';
+import { isSameOrigin } from '@/lib/same-origin';
 
 /**
  * Upload endpoint used by the rich text editor, the media library and the
@@ -12,6 +13,12 @@ import { storeImage, storeDocument } from '@/lib/uploads';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  // This route is outside the middleware (see its matcher), so the same-site
+  // check the middleware does for every other form is made here.
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: 'Request blocked: it did not come from this website.' }, { status: 403 });
+  }
+
   const user = await apiUser('media.upload');
   if (!user) {
     return NextResponse.json(

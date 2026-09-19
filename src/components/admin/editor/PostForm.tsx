@@ -1,5 +1,6 @@
 'use client';
 
+import { postUpload } from '@/lib/upload-client';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -123,7 +124,7 @@ export function PostForm({
       fd.append('file', file);
       fd.append('folder', 'covers');
       fd.append('maxSize', '1600');
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const res = await postUpload(fd);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setResult({ ok: false, error: body.error || 'The cover image could not be uploaded.' });

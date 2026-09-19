@@ -1,5 +1,6 @@
 'use client';
 
+import { postUpload } from '@/lib/upload-client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -59,7 +60,7 @@ export function RichEditor({
       const fd = new FormData();
       fd.append('file', file);
       fd.append('folder', 'posts');
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const res = await postUpload(fd);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.error || 'That image could not be uploaded.');

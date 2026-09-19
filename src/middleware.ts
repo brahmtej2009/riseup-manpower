@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { isSameOrigin } from '@/lib/same-origin';
 
 /**
  * Runs before every request.
@@ -19,48 +20,11 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (!SAFE_METHODS.has(req.method)) {
-    const origin = req.headers.get('origin');
-    if (origin) {
-      let originHost = '';
-      try {
-        originHost = new URL(origin).host;
-      } catch {
-        originHost = '';
-      }
-
-      // Behind a reverse proxy the Host header may have been rewritten to
-      // whatever the proxy talks to internally, while the browser still sends
-      // the public address as the Origin. Both are accepted, so the site keeps
-      // working on a domain, a LAN address or a Tailscale IP, and a genuine
-      // cross-site post is still refused.
-      const allowed = new Set(
-        [
-          req.headers.get('x-forwarded-host'),
-          req.headers.get('host'),
-          process.env.NEXT_PUBLIC_SITE_URL,
-        ]
-          .flatMap((value) => (value ? value.split(',') : []))
-          .map((value) => {
-            const trimmed = value.trim();
-            if (!trimmed) return '';
-            try {
-              // Accepts a bare host as well as a full address from .env.
-              return trimmed.includes('://') ? new URL(trimmed).host : trimmed;
-            } catch {
-              return '';
-            }
-          })
-          .filter(Boolean)
-      );
-
-      if (!originHost || !allowed.has(originHost)) {
-        return new NextResponse(
-          JSON.stringify({ error: 'Request blocked: it did not come from this website.' }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-    }
+  if (!SAFE_METHODS.has(req.method) && !isSameOrigin(req)) {
+    return new NextResponse(
+      JSON.stringify({ error: 'Request blocked: it did not come from this website.' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   const res = NextResponse.next();
@@ -75,7 +39,12 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next's own assets and the favicon.
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Everything except Next's own assets, the favicon, and the upload route.
+    //
+    // Next copies the body of every request that passes through middleware,
+    // and cuts it off at 10 MB. A large photo arriving cut off made uploads
+    // hang, so uploads skip the middleware and the route makes the same
+    // same-site check itself.
+    '/((?!_next/static|_next/image|favicon.ico|api/admin/upload).*)',
   ],
 };

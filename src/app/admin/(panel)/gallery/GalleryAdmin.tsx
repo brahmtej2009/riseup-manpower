@@ -1,5 +1,6 @@
 'use client';
 
+import { postUpload } from '@/lib/upload-client';
 import { useRef, useState } from 'react';
 import {
   ImagePlus, Loader2, AlertCircle, ChevronUp, ChevronDown, Eye, EyeOff,
@@ -41,7 +42,7 @@ export function AddPhotos({
         fd.append('folder', 'gallery');
         fd.append('maxSize', '2200');
 
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const res = await postUpload(fd);
         const body = await res.json().catch(() => ({}));
 
         if (!res.ok) setError(body.error || 'That image could not be uploaded.');
