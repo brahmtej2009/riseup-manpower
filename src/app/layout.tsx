@@ -4,6 +4,18 @@ import { getSettings, getSiteInfo, str, bool } from '@/lib/settings';
 import { themeScript } from '@/lib/theme';
 
 /**
+ * After an update, a page that was already open still points at the old
+ * version's script files, which are gone. The first click that needs one
+ * would fail with "Application error". Reloading once fetches the new version
+ * instead. The guard stops a reload loop if something else is wrong.
+ */
+const RELOAD_ON_STALE_BUILD = `(function(){
+function again(){try{var k='ru-stale-reload',t=+sessionStorage.getItem(k)||0;if(Date.now()-t<15000)return;sessionStorage.setItem(k,String(Date.now()))}catch(e){}location.reload()}
+addEventListener('error',function(e){var s=e.target;if(s&&s.tagName==='SCRIPT'&&/\/_next\/static\//.test(s.src||''))again()},true);
+addEventListener('unhandledrejection',function(e){var r=e.reason||{};if(r.name==='ChunkLoadError'||/Loading chunk|dynamically imported module|Failed to load chunk/i.test(r.message||''))again()});
+})();`;
+
+/**
  * Root layout. Everything here applies to both the public site and the admin
  * panel, so it stays deliberately thin - the two have their own layouts.
  */
@@ -120,6 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: theme }} />
+        <script dangerouslySetInnerHTML={{ __html: RELOAD_ON_STALE_BUILD }} />
         {overrides && (
           <style dangerouslySetInnerHTML={{ __html: `:root{${overrides}}` }} />
         )}

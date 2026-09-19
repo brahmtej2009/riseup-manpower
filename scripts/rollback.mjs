@@ -22,6 +22,7 @@ import Database from './lib/sqlite.mjs';
 import { loadEnv, ensureDirs, ROOT, DB_PATH, LOG_DIR, BACKUP_DIR, c, ok, fail, warn, step } from './lib/paths.mjs';
 import { createBackup, restoreBackup } from './lib/backup-core.mjs';
 import { schemaVersion } from './lib/migrator.mjs';
+import { builtSince, discardSlot } from './lib/build-slot.mjs';
 
 loadEnv();
 ensureDirs();
@@ -211,6 +212,7 @@ async function main() {
     : null;
   let reached = 'rb-backup';
   let dbRestored = false;
+  let buildStart = 0;
 
   try {
     // -- 3 --------------------------------------------------------------- code
@@ -250,6 +252,7 @@ async function main() {
     stage(6, 'Building the previous version', 'rb-build');
     // `next build` directly: `npm run build` would migrate first, and the
     // database is deliberately left exactly as chosen above.
+    buildStart = Date.now() - 1000;
     run(BUILD);
     ok('Build succeeded.');
 
@@ -261,7 +264,7 @@ async function main() {
     const schema = schemaVersion(dbv);
     dbv.close();
     if (integrity !== 'ok') throw new Error(`Database integrity check failed: ${integrity}`);
-    if (!fs.existsSync(path.join(ROOT, '.next', 'BUILD_ID'))) throw new Error('Build output is missing.');
+    if (!builtSince(buildStart, ROOT)) throw new Error('Build output is missing.');
     ok(`Integrity ok, schema v${schema}.`);
 
     // The rolled-back update comes off the history, so a second rollback
@@ -322,11 +325,13 @@ async function main() {
     if (['rb-install', 'rb-db', 'rb-build', 'rb-verify'].includes(reached)) {
       try {
         run('npm install --no-audit --no-fund');
-        run(BUILD);
-        ok('Current version rebuilt.');
       } catch {
-        warn('Could not rebuild - run "npm install && npm run build" by hand.');
+        warn('Could not reinstall packages - run "npm install" by hand.');
       }
+      // The build being served was never touched; only the new one goes.
+      const fresh = buildStart ? builtSince(buildStart, ROOT) : null;
+      if (fresh) discardSlot(fresh, ROOT);
+      ok('The current build is still in place.');
     }
 
     writeProgress({ running: false, status: 'failed', error: err.message, finished_at: new Date().toISOString() });

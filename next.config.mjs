@@ -1,3 +1,6 @@
+import { PHASE_PRODUCTION_BUILD, PHASE_PRODUCTION_SERVER } from 'next/constants.js';
+import { buildSlot, servingSlot } from './scripts/lib/build-slot.mjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -37,4 +40,13 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * A build goes into whichever of the two build folders is not being served,
+ * and the server starts from the newest one. See scripts/lib/build-slot.mjs.
+ * Development always uses .next.
+ */
+export default function config(phase) {
+  if (phase === PHASE_PRODUCTION_BUILD) return { ...nextConfig, distDir: buildSlot() };
+  if (phase === PHASE_PRODUCTION_SERVER) return { ...nextConfig, distDir: servingSlot() };
+  return nextConfig;
+}

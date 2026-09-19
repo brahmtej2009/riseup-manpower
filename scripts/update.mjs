@@ -11,7 +11,9 @@
 //   3. Migrations only ever ADD to the database. They never drop or reset it.
 //   4. If ANY step fails, the code is reset to the previous commit, the
 //      database is restored from the backup taken in step 2, and the
-//      dependencies/build are restored to the previous state.
+//      packages are put back. The new build goes into the build folder the
+//      site is not serving, so the running site is never touched and the
+//      previous build is simply kept.
 //   5. Every run writes a log to data/logs/update-<timestamp>.log
 
 import fs from 'node:fs';
@@ -35,6 +37,7 @@ import {
 import { createBackup, restoreBackup, pruneBackups } from './lib/backup-core.mjs';
 import { spawn } from 'node:child_process';
 import { pendingMigrations, schemaVersion } from './lib/migrator.mjs';
+import { builtSince, discardSlot } from './lib/build-slot.mjs';
 
 loadEnv();
 ensureDirs();
@@ -268,6 +271,7 @@ async function main() {
 
   // Everything from here on is protected by the rollback handler.
   let stageReached = 'checkpoint';
+  let buildStart = 0;
 
   try {
     // -- 4 ------------------------------------------------------------- pull
@@ -327,8 +331,11 @@ async function main() {
       stage(7, 'Build skipped', 'build');
     } else {
       stage(7, 'Building the new version', 'build');
+      // Goes into the build folder the site is not serving, so the running
+      // site is untouched until the restart (scripts/lib/build-slot.mjs).
+      buildStart = Date.now() - 1000;
       run(BUILD);
-      ok('Build succeeded.');
+      ok(`Build succeeded (${builtSince(buildStart, ROOT) ?? 'unknown folder'}).`);
     }
 
     // -- 8 ----------------------------------------------------------- verify
@@ -345,8 +352,8 @@ async function main() {
     if (newSchema < currentSchema) {
       throw new Error(`Schema went backwards (${currentSchema} -> ${newSchema}).`);
     }
-    if (!SKIP_BUILD && !fs.existsSync(path.join(ROOT, '.next', 'BUILD_ID'))) {
-      throw new Error('Build output is missing (.next/BUILD_ID).');
+    if (!SKIP_BUILD && !builtSince(buildStart, ROOT)) {
+      throw new Error('Build output is missing (no new BUILD_ID).');
     }
     ok(`Integrity ok, schema v${newSchema}, ${userCount} admin user(s).`);
 
@@ -435,15 +442,12 @@ async function main() {
       } catch {
         warn('Could not reinstall the previous packages - run "npm install" manually.');
       }
-      if (!SKIP_BUILD) {
-        try {
-          run(BUILD);
-          rollbackReport.push('previous version rebuilt');
-          ok('Previous version rebuilt.');
-        } catch {
-          warn('Could not rebuild the previous version - run "npm run build" manually.');
-        }
-      }
+      // The previous build was never touched: it sits in the other build
+      // folder. Taking the new one out of the running is all that is needed.
+      const fresh = buildStart ? builtSince(buildStart, ROOT) : null;
+      if (fresh) discardSlot(fresh, ROOT);
+      rollbackReport.push('previous build kept, new build discarded');
+      ok('The previous build is still in place.');
     }
 
     writeStatus({
