@@ -5,7 +5,8 @@
   "description": "Rise Up Manpower - recruitment & staffing platform",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "npm run migrate && next build",
+    "build": "npm run migrate && (next build --turbopack || next build)",
+    "build:webpack": "npm run migrate && next build",
     "start": "next start -p 3000",
     "lint": "next lint",
     "migrate": "node scripts/migrate.mjs",

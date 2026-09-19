@@ -30,6 +30,10 @@ const args = process.argv.slice(2);
 const RESTORE_DB = args.includes('--restore-db');
 const ASSUME_YES = args.includes('--yes') || args.includes('-y');
 
+// Turbopack builds several times faster. It is still new in this version of
+// Next, so if it ever fails, the long-standing webpack build runs instead.
+const BUILD = 'npx next build --turbopack || npx next build';
+
 const TOTAL_STEPS = 7;
 const startedAt = new Date();
 const logFile = path.join(LOG_DIR, `rollback-${startedAt.toISOString().replace(/[:.]/g, '-')}.log`);
@@ -103,14 +107,37 @@ const readJson = (file, fallback) => {
   }
 };
 
-/** The installed updates, falling back to the last one for older servers. */
+/**
+ * The installed updates, oldest first. Kept in step with the admin panel's
+ * reader in src/lib/updates.ts.
+ *
+ * After a rollback the server runs older code, and an update started from
+ * there uses that older update script, which may not write this history. It
+ * always writes last-update.json, so an update found there and missing here
+ * is added. With nothing recorded at all, the version before this one in git
+ * is offered, so there is always somewhere to go back to.
+ */
 function readHistory() {
-  const list = readJson(historyFile, null);
-  if (Array.isArray(list)) return list;
+  const raw = readJson(historyFile, []);
+  const list = Array.isArray(raw) ? raw : [];
+
   const last = readJson(path.join(LOG_DIR, 'last-update.json'), null);
-  return last?.status === 'success' && last.from && last.to
-    ? [{ from: last.from, to: last.to, backup: last.backup ?? null, finished_at: last.finished_at }]
-    : [];
+  if (last?.status === 'success' && last.from && last.to) {
+    const known = list.some((h) => h.from === last.from && h.to === last.to);
+    const newest = list[list.length - 1];
+    if (!known && (!newest || String(last.finished_at ?? '') > String(newest.finished_at ?? ''))) {
+      list.push({ from: last.from, to: last.to, backup: last.backup ?? null, finished_at: last.finished_at ?? '' });
+    }
+  }
+
+  if (!list.length) {
+    try {
+      list.push({ from: git('rev-parse HEAD~1'), to: git('rev-parse HEAD'), backup: null, finished_at: '', fallback: true });
+    } catch {
+      /* a single commit: nothing earlier exists */
+    }
+  }
+  return list;
 }
 
 function restartSite() {
@@ -151,7 +178,7 @@ async function main() {
   say(`  database    : ${RESTORE_DB ? `restore ${entry.backup}` : 'keep as it is'}`);
 
   try {
-    git(`cat-file -e ${entry.from}^{commit}`);
+    if (git(`cat-file -t ${entry.from}`) !== 'commit') throw new Error();
   } catch {
     throw new Error(`The previous version (${String(entry.from).slice(0, 8)}) is no longer in this copy's history.`);
   }
@@ -223,7 +250,7 @@ async function main() {
     stage(6, 'Building the previous version', 'rb-build');
     // `next build` directly: `npm run build` would migrate first, and the
     // database is deliberately left exactly as chosen above.
-    run('npx next build');
+    run(BUILD);
     ok('Build succeeded.');
 
     // -- 7 ------------------------------------------------------------- verify
@@ -295,7 +322,7 @@ async function main() {
     if (['rb-install', 'rb-db', 'rb-build', 'rb-verify'].includes(reached)) {
       try {
         run('npm install --no-audit --no-fund');
-        run('npx next build');
+        run(BUILD);
         ok('Current version rebuilt.');
       } catch {
         warn('Could not rebuild - run "npm install && npm run build" by hand.');

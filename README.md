@@ -102,6 +102,7 @@ npm run create-admin
 | `npm run backup -- --list` | Lists the backups |
 | `npm run restore -- <name>` | Restores a backup (backs up the current state first) |
 | `npm run update:check` | Checks the repository for a newer version, changes nothing |
+| `npm run build:webpack` | Builds with the older webpack compiler, if Turbopack ever misbehaves |
 | `npm run update` | Applies an update, with automatic rollback on failure |
 | `npm run rollback -- --keep-db` | Goes back to the version before the last update, keeping the database |
 | `npm run rollback -- --restore-db` | The same, and puts back the database from before that update |

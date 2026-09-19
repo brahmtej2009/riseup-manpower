@@ -45,6 +45,10 @@ const ASSUME_YES = args.includes('--yes') || args.includes('-y');
 const SKIP_BUILD = args.includes('--no-build');
 const AUTO = args.includes('--auto');
 
+// Turbopack builds several times faster. It is still new in this version of
+// Next, so if it ever fails, the long-standing webpack build runs instead.
+const BUILD = 'npx next build --turbopack || npx next build';
+
 const TOTAL_STEPS = 9;
 const startedAt = new Date();
 const logFile = path.join(
@@ -323,7 +327,7 @@ async function main() {
       stage(7, 'Build skipped', 'build');
     } else {
       stage(7, 'Building the new version', 'build');
-      run('npx next build');
+      run(BUILD);
       ok('Build succeeded.');
     }
 
@@ -433,7 +437,7 @@ async function main() {
       }
       if (!SKIP_BUILD) {
         try {
-          run('npx next build');
+          run(BUILD);
           rollbackReport.push('previous version rebuilt');
           ok('Previous version rebuilt.');
         } catch {

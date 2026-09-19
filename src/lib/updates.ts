@@ -47,6 +47,8 @@ export interface HistoryEntry {
   finished_at: string;
   /** False when the backup taken before the update has since been removed. */
   backupAvailable: boolean;
+  /** No update is recorded; this is simply the previous version in git. */
+  fallback?: boolean;
 }
 
 function git(args: string[], timeout = 20_000): string {
@@ -131,24 +133,45 @@ export function updateRunning(): boolean {
   }
 }
 
-/** Updates installed on this server, newest first. */
+/**
+ * Updates installed on this server, newest first. Kept in step with the
+ * reader in scripts/rollback.mjs.
+ *
+ * After a rollback the server runs older code, and an update started from
+ * there uses that older update script, which may not write the history. It
+ * always writes last-update.json, so an update found there and missing from
+ * the history is added. With nothing recorded at all, the version before this
+ * one in git is offered, so there is always somewhere to go back to.
+ */
 export function readHistory(): HistoryEntry[] {
-  let raw = readJson<Omit<HistoryEntry, 'backupAvailable'>[]>('update-history.json');
+  const file = readJson<Omit<HistoryEntry, 'backupAvailable'>[]>('update-history.json');
+  const raw = Array.isArray(file) ? file : [];
 
-  // Servers updated before the history was kept still have the last one.
-  if (!raw) {
-    const last = readJson<Record<string, unknown>>('last-update.json');
-    raw =
-      last?.status === 'success' && last.from && last.to
-        ? [{
-            from: String(last.from),
-            to: String(last.to),
-            backup: last.backup ? String(last.backup) : null,
-            schema_from: Number(last.schema_from) || undefined,
-            schema_to: Number(last.schema_to) || undefined,
-            finished_at: String(last.finished_at ?? ''),
-          }]
-        : [];
+  const last = readJson<Record<string, unknown>>('last-update.json');
+  if (last?.status === 'success' && last.from && last.to) {
+    const from = String(last.from);
+    const to = String(last.to);
+    const finished = String(last.finished_at ?? '');
+    const known = raw.some((h) => h.from === from && h.to === to);
+    const newest = raw[raw.length - 1];
+    if (!known && (!newest || finished > String(newest.finished_at ?? ''))) {
+      raw.push({
+        from,
+        to,
+        backup: last.backup ? String(last.backup) : null,
+        schema_from: Number(last.schema_from) || undefined,
+        schema_to: Number(last.schema_to) || undefined,
+        finished_at: finished,
+      });
+    }
+  }
+
+  if (!raw.length) {
+    try {
+      raw.push({ from: git(['rev-parse', 'HEAD~1']), to: git(['rev-parse', 'HEAD']), backup: null, finished_at: '', fallback: true });
+    } catch {
+      /* a single commit: nothing earlier exists */
+    }
   }
 
   return raw

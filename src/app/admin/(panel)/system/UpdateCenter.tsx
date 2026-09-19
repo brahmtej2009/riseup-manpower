@@ -106,7 +106,11 @@ export function UpdateCenter(props: UpdateCenterProps) {
           <ActionTile
             icon={History}
             title="Roll back"
-            text={last ? `To ${last.from.slice(0, 7)}, before the last update` : 'No earlier update recorded'}
+            text={
+              last
+                ? `To ${last.from.slice(0, 7)}, ${last.fallback ? 'the previous version' : 'before the last update'}`
+                : 'There is no earlier version'
+            }
             onClick={() => setDialog('rollback')}
             disabled={!last}
             tone="rose"
@@ -486,9 +490,11 @@ function RollbackDialog({
         ? `Goes back to how it was on ${new Date(last.finished_at).toLocaleString()}. Anything entered since is lost. Uploaded files are not touched.`
         : 'Anything entered since is lost. Uploaded files are not touched.',
       disabled: !last.backupAvailable,
-      reason: last.backup
-        ? 'That backup has since been removed from the server.'
-        : 'No backup was recorded for that update.',
+      reason: last.fallback
+        ? 'No update is recorded for this version, so there is no backup to match it.'
+        : last.backup
+          ? 'That backup has since been removed from the server.'
+          : 'No backup was recorded for that update.',
     },
   ];
 
@@ -498,7 +504,9 @@ function RollbackDialog({
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-100 text-rose-600">
           <History className="h-6 w-6" />
         </span>
-        <h2 className="mt-4 font-display text-xl font-semibold text-ink">Roll back the last update?</h2>
+        <h2 className="mt-4 font-display text-xl font-semibold text-ink">
+          {last.fallback ? 'Go back to the previous version?' : 'Roll back the last update?'}
+        </h2>
 
         <div className="mt-3 flex items-center gap-2 font-mono text-xs">
           <span className="rounded-md bg-surface-alt px-2 py-1 text-ink-soft">{current?.hash ?? last.to.slice(0, 7)}</span>
