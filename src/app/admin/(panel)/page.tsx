@@ -10,6 +10,10 @@ import { formatNumber, timeAgo, truncate } from '@/lib/utils';
 import { getOverview, getSeries, getComparison, getLiveVisitors } from '@/lib/analytics';
 import { PageTitle, StatCard, Panel, StatusBadge, EmptyState } from '@/components/admin/ui';
 import { TrendChart } from '@/components/admin/Chart';
+import { getSettings, str } from '@/lib/settings';
+import { gitInfo } from '@/lib/updates';
+import { UpdateSummary } from './system/UpdateCenter';
+import { setAutoUpdate } from './system/actions';
 
 export const metadata = { title: 'Dashboard' };
 
@@ -221,6 +225,14 @@ export default async function DashboardPage() {
         </Panel>
 
         <div className="space-y-5">
+          {can(user, 'system.update') && (
+            <UpdateSummary
+              info={gitInfo()}
+              auto={str(getSettings(), 'sys_auto_update') === '1'}
+              setAuto={setAutoUpdate}
+            />
+          )}
+
           <Panel
             title="Recent messages"
             bodyClassName=""

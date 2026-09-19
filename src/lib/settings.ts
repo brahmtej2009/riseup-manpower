@@ -149,6 +149,16 @@ export const WORD_DEFAULTS = {
   footer_whatsapp: 'Message on WhatsApp',
   footer_rights: 'All rights reserved.',
   footer_staff_login: 'Staff login',
+  contact_heading: 'Get in touch',
+  contact_label_office: 'Office',
+  contact_label_phone: 'Phone',
+  contact_label_email: 'Email',
+  contact_label_open: 'Open',
+  contact_employer_text: 'Send a staffing requirement',
+  contact_candidate_text: 'Register as a candidate',
+  contact_continue: 'Continue',
+  register_employer_heading: 'Register as an employer',
+  register_candidate_heading: 'Register as a candidate',
 } as const;
 
 export type WordKey = keyof typeof WORD_DEFAULTS;

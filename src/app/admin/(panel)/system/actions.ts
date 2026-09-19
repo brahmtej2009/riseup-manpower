@@ -6,6 +6,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { guard, audit, formStr, type ActionResult } from '@/lib/admin-actions';
 import { pruneAnalytics } from '@/lib/analytics';
+import { db } from '@/lib/db';
+import {
+  gitInfo, readHistory, readAutoState, writeAutoState, startDetached, updateRunning,
+  type GitInfo,
+} from '@/lib/updates';
 
 /**
  * Backups and updates are run as separate Node processes rather than inside
@@ -51,31 +56,6 @@ function runScript(script: string, args: string[] = []): Promise<{ ok: boolean; 
   });
 }
 
-/**
- * Starts a script and returns straight away, leaving it running.
- *
- * Used for the update, which outlives the request that began it: it restarts
- * the server as its last act. The child is detached and its handles released
- * so that stopping the server does not kill the update halfway through.
- */
-function startDetached(
-  script: string,
-  args: string[] = []
-): { ok: true } | { ok: false; error: string } {
-  try {
-    const child = spawn(process.execPath, [path.join(ROOT, 'scripts', script), ...args], {
-      cwd: ROOT,
-      env: process.env,
-      detached: true,
-      stdio: 'ignore',
-    });
-    child.unref();
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: (err as Error).message };
-  }
-}
-
 function stripAnsi(value: string): string {
   // Remove terminal colour codes so the output reads cleanly in the browser.
   return value.replace(/\[[0-9;]*m/g, '');
@@ -95,22 +75,15 @@ export async function createBackupNow(): Promise<ActionResult> {
     : { ok: false, error: `The backup failed.\n${result.output.slice(-500)}` };
 }
 
-export async function checkForUpdates(): Promise<ActionResult<{ output: string }>> {
-  const g = await guard('system.update');
-  if (!g.ok) return g;
-
-  const result = await runScript('update.mjs', ['--check']);
-  await audit(g.user, 'system.update_check', 'system', '', result.ok ? 'checked' : 'check failed');
-
-  return { ok: true, message: 'Check complete.', data: { output: result.output } };
-}
-
 export async function runUpdateNow(formData: FormData): Promise<ActionResult<{ output: string }>> {
   const g = await guard('system.update');
   if (!g.ok) return g;
 
-  if (formStr(formData, 'confirm', 20) !== 'UPDATE') {
-    return { ok: false, error: 'Type UPDATE to confirm.' };
+  if (formStr(formData, 'confirm', 20) !== 'yes') {
+    return { ok: false, error: 'The update was not confirmed.' };
+  }
+  if (updateRunning()) {
+    return { ok: false, error: 'An update or a rollback is already running.' };
   }
 
   await audit(g.user, 'system.update_start', 'system', '', 'Update started from the admin panel');
@@ -128,11 +101,75 @@ export async function runUpdateNow(formData: FormData): Promise<ActionResult<{ o
     return { ok: false, error: `The update could not be started. ${started.error}` };
   }
 
+  // A version installed by hand is fair game for the automatic updater again.
+  const auto = readAutoState();
+  if (auto.skip) writeAutoState({ ...auto, skip: undefined });
+
+  return { ok: true, message: 'Update started.', data: { output: '' } };
+}
+
+/** Asks the repository what is new. Changes nothing. */
+export async function fetchUpdateInfo(): Promise<ActionResult<{ info: GitInfo }>> {
+  const g = await guard('system.update');
+  if (!g.ok) return g;
+
+  const info = gitInfo({ fetch: true });
+  writeAutoState({
+    ...readAutoState(),
+    checked_at: new Date().toISOString(),
+    behind: info.behind,
+    remote: info.remote ?? undefined,
+    error: info.error,
+  });
+  return { ok: true, data: { info } };
+}
+
+/** Switches the self-checking automatic updater on or off. */
+export async function setAutoUpdate(on: boolean): Promise<ActionResult> {
+  const g = await guard('system.update');
+  if (!g.ok) return g;
+
+  db.run("UPDATE settings SET value = ?, updated_at = datetime('now') WHERE key = 'sys_auto_update'", [
+    on ? '1' : '0',
+  ]);
+  await audit(g.user, 'system.auto_update', 'system', '', on ? 'switched on' : 'switched off');
+  revalidatePath('/admin/system');
+  revalidatePath('/admin');
   return {
     ok: true,
-    message: 'Update started.',
-    data: { output: '' },
+    message: on ? 'Automatic updates are on.' : 'Automatic updates are off.',
   };
+}
+
+/** Goes back to the version before the last update. */
+export async function runRollback(formData: FormData): Promise<ActionResult> {
+  const g = await guard('system.update');
+  if (!g.ok) return g;
+
+  if (formStr(formData, 'confirm', 20) !== 'yes') {
+    return { ok: false, error: 'The rollback was not confirmed.' };
+  }
+  if (updateRunning()) {
+    return { ok: false, error: 'An update or a rollback is already running.' };
+  }
+
+  const last = readHistory()[0];
+  if (!last) return { ok: false, error: 'There is no earlier update to go back to.' };
+
+  const restoreDb = formStr(formData, 'database', 20) === 'restore';
+  if (restoreDb && !last.backupAvailable) {
+    return { ok: false, error: 'The database backup from before that update is no longer on the server.' };
+  }
+
+  await audit(
+    g.user, 'system.rollback', 'system', '',
+    `to ${last.from.slice(0, 8)}, database ${restoreDb ? 'restored' : 'kept'}`
+  );
+
+  const started = startDetached('rollback.mjs', ['--yes', restoreDb ? '--restore-db' : '--keep-db']);
+  return started.ok
+    ? { ok: true, message: 'Rollback started.' }
+    : { ok: false, error: `The rollback could not be started. ${started.error}` };
 }
 
 export async function pruneAnalyticsNow(): Promise<ActionResult> {

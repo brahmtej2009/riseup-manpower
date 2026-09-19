@@ -21,6 +21,8 @@ export default function TeamPage() {
       <PageHeader
         title={str(s, 'team_heading', 'Our team')}
         intro={str(s, 'team_intro')}
+        field="team_heading"
+        introField="team_intro"
         breadcrumbs={[{ href: '/team', label: 'Our team' }]}
       />
 

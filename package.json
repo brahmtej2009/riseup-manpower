@@ -18,6 +18,7 @@
     "restore": "node scripts/restore.mjs",
     "update": "node scripts/update.mjs",
     "update:check": "node scripts/update.mjs --check",
+    "rollback": "node scripts/rollback.mjs",
     "postinstall": "node scripts/postinstall.mjs",
     "predev": "node scripts/migrate.mjs"
   },

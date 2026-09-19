@@ -15,7 +15,12 @@ export function PageHeader({
   intro,
   breadcrumbs = [],
   children,
+  field,
+  introField,
 }: {
+  /** Setting keys, so the heading can be edited straight from the preview. */
+  field?: string;
+  introField?: string;
   eyebrow?: string;
   title: string;
   intro?: string;
@@ -65,13 +70,13 @@ export function PageHeader({
           )}
 
           <h1 className="mx-auto max-w-3xl font-display text-[clamp(1.75rem,4vw,2.75rem)] font-bold uppercase leading-tight tracking-tight text-panel">
-            {title}
+            <span data-field={field}>{title}</span>
           </h1>
 
           <span className="accent-rule mx-auto mt-5" aria-hidden />
 
           {intro && (
-            <p className="mx-auto mt-6 max-w-2xl text-[1.0625rem] leading-relaxed text-panel-soft">
+            <p data-field={introField} className="mx-auto mt-6 max-w-2xl text-[1.0625rem] leading-relaxed text-panel-soft">
               {intro}
             </p>
           )}

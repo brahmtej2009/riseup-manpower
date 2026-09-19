@@ -199,6 +199,16 @@ export const PREVIEW_FIELDS: Record<
   working_days: { label: 'Working days' },
   working_hours: { label: 'Working hours' },
   sys_footer_note: { label: 'Footer note', multiline: true },
+  contact_heading: { label: 'Contact page heading', fallback: true },
+  contact_label_office: { label: 'Office label', fallback: true },
+  contact_label_phone: { label: 'Phone label', fallback: true },
+  contact_label_email: { label: 'Email label', fallback: true },
+  contact_label_open: { label: 'Hours label', fallback: true },
+  contact_employer_text: { label: 'Employer card line', fallback: true },
+  contact_candidate_text: { label: 'Candidate card line', fallback: true },
+  contact_continue: { label: 'Card link', fallback: true },
+  register_employer_heading: { label: 'Employer page heading', fallback: true },
+  register_candidate_heading: { label: 'Candidate page heading', fallback: true },
 };
 
 export const isPreviewField = (key: string): boolean =>

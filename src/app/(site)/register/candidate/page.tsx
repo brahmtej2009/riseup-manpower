@@ -25,7 +25,8 @@ export default function CandidateRegisterPage() {
   return (
     <>
       <PageHeader
-        title="Register as a candidate"
+        title={site.words.register_candidate_heading}
+        field="register_candidate_heading"
         breadcrumbs={[{ href: '/register/candidate', label: 'For candidates' }]}
       />
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Phone, Mail, Clock, ArrowRight, Briefcase, UserRound } from 'lucide-react';
-import { getSiteInfo } from '@/lib/settings';
+import { getSettings, getSiteInfo, str } from '@/lib/settings';
 import { telLink, whatsappLink } from '@/lib/utils';
 import { PageHeader } from '@/components/site/PageHeader';
 import { ContactForm } from '@/components/forms/ContactForm';
@@ -16,40 +16,41 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   const site = getSiteInfo();
+  const s = getSettings();
 
   const details = [
     site.address.length > 0 && {
       icon: MapPin,
-      label: 'Office',
+      key: 'contact_label_office',
       lines: [site.address.join(', ')],
     },
     site.phone && {
       icon: Phone,
-      label: 'Phone',
+      key: 'contact_label_phone',
       lines: [site.phone, site.phone2].filter(Boolean) as string[],
       hrefs: [telLink(site.phone), site.phone2 ? telLink(site.phone2) : ''],
     },
     site.email && {
       icon: Mail,
-      label: 'Email',
+      key: 'contact_label_email',
       lines: [site.email, site.emailHr].filter(Boolean) as string[],
       hrefs: [`mailto:${site.email}`, site.emailHr ? `mailto:${site.emailHr}` : ''],
     },
     (site.workingDays || site.workingHours) && {
       icon: Clock,
-      label: 'Open',
+      key: 'contact_label_open',
       lines: [site.workingDays, site.workingHours].filter(Boolean) as string[],
     },
   ].filter(Boolean) as {
     icon: typeof MapPin;
-    label: string;
+    key: 'contact_label_office' | 'contact_label_phone' | 'contact_label_email' | 'contact_label_open';
     lines: string[];
     hrefs?: string[];
   }[];
 
   return (
     <>
-      <PageHeader title="Get in touch" breadcrumbs={[{ href: '/contact', label: 'Contact' }]} />
+      <PageHeader title={site.words.contact_heading} field="contact_heading" breadcrumbs={[{ href: '/contact', label: 'Contact' }]} />
 
       {/* The form and the contact details side by side, so a visitor sees
           both without scrolling. The form leads, because sending a message is
@@ -66,14 +67,14 @@ export default function ContactPage() {
             <div className="flex flex-col gap-4">
               <RevealGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1" stagger={0.06}>
                 {details.map((item) => (
-                  <RevealItem key={item.label}>
+                  <RevealItem key={item.key}>
                     <div className="card flex h-full items-start gap-3.5 p-4">
                       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-600/10 text-brand-600">
                         <item.icon className="h-[1.125rem] w-[1.125rem]" strokeWidth={2} />
                       </span>
                       <span className="min-w-0">
                         <span className="block text-[0.6875rem] font-semibold uppercase tracking-[0.15em] text-ink-muted">
-                          {item.label}
+                          <span data-field={item.key}>{site.words[item.key]}</span>
                         </span>
                         <span className="mt-1 block space-y-0.5 text-[0.9375rem] leading-relaxed text-ink">
                           {item.lines.map((line, i) =>
@@ -111,7 +112,7 @@ export default function ContactPage() {
                     className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-emerald-500"
                   >
                     <SocialIcon name="whatsapp" className="h-5 w-5" />
-                    Message on WhatsApp
+                    <span data-field="footer_whatsapp">{site.words.footer_whatsapp}</span>
                   </a>
                 </Reveal>
               )}
@@ -128,14 +129,18 @@ export default function ContactPage() {
               {
                 href: '/register/employer',
                 icon: Briefcase,
-                title: 'I need manpower',
-                text: 'Send a staffing requirement',
+                title: str(s, 'hero_cta_employer', 'I need manpower'),
+                titleField: 'hero_cta_employer',
+                text: site.words.contact_employer_text,
+                textField: 'contact_employer_text',
               },
               {
                 href: '/register/candidate',
                 icon: UserRound,
-                title: 'I am looking for a job',
-                text: 'Register as a candidate',
+                title: str(s, 'hero_cta_candidate', 'I am looking for a job'),
+                titleField: 'hero_cta_candidate',
+                text: site.words.contact_candidate_text,
+                textField: 'contact_candidate_text',
               },
             ].map((item) => (
               <RevealItem key={item.href}>
@@ -149,11 +154,11 @@ export default function ContactPage() {
                       <item.icon className="h-5 w-5" strokeWidth={2} />
                     </span>
                     <span className="font-display text-base font-semibold text-ink">
-                      {item.title}
+                      <span data-field={item.titleField}>{item.title}</span>
                     </span>
-                    <span className="text-sm text-ink-soft">{item.text}</span>
+                    <span data-field={item.textField} className="text-sm text-ink-soft">{item.text}</span>
                     <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700">
-                      Continue
+                      <span data-field="contact_continue">{site.words.contact_continue}</span>
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </Link>

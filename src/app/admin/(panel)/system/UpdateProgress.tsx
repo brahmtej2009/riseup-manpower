@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface Status {
   running: boolean;
+  kind: 'update' | 'rollback';
   step: number;
   totalSteps: number;
   stage: string | null;
@@ -13,6 +14,7 @@ interface Status {
   restarting: boolean;
   error: string | null;
   log: string[];
+  startedAt: string | null;
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -26,6 +28,13 @@ const STAGE_LABELS: Record<string, string> = {
   build: 'Building the new version',
   verify: 'Verifying',
   finalise: 'Finishing',
+  'rb-check': 'Checking what to go back to',
+  'rb-backup': 'Backing up the database',
+  'rb-code': 'Putting back the previous code',
+  'rb-install': 'Installing packages',
+  'rb-db': 'Sorting out the database',
+  'rb-build': 'Building the previous version',
+  'rb-verify': 'Verifying',
 };
 
 /**
@@ -35,7 +44,14 @@ const STAGE_LABELS: Record<string, string> = {
  * treats the server going quiet as part of the process rather than an error.
  * It keeps polling, and when the server answers again the new version is up.
  */
-export function UpdateProgress({ onFinished }: { onFinished?: () => void }) {
+export function UpdateProgress({
+  onFinished,
+  since = 0,
+}: {
+  onFinished?: () => void;
+  /** When this run was started, so a finished run from before it is ignored. */
+  since?: number;
+}) {
   const [status, setStatus] = useState<Status | null>(null);
   const [unreachable, setUnreachable] = useState(false);
   const [done, setDone] = useState<'success' | 'failed' | null>(null);
@@ -54,7 +70,9 @@ export function UpdateProgress({ onFinished }: { onFinished?: () => void }) {
 
       // Finished only counts once the run has actually been seen, otherwise a
       // stale file from a previous update would look like this one ending.
-      if (!data.running && sawRunning.current) {
+      const thisRun =
+        sawRunning.current || (!!data.startedAt && Date.parse(data.startedAt) >= since - 5000);
+      if (!data.running && thisRun) {
         if (data.status === 'failed') setDone('failed');
         else if (data.status === 'success' || data.status === 'up-to-date') setDone('success');
       }
@@ -62,7 +80,7 @@ export function UpdateProgress({ onFinished }: { onFinished?: () => void }) {
       // Expected while the site restarts itself at the end of an update.
       setUnreachable(true);
     }
-  }, []);
+  }, [since]);
 
   useEffect(() => {
     void poll();
@@ -82,17 +100,22 @@ export function UpdateProgress({ onFinished }: { onFinished?: () => void }) {
   const total = status?.totalSteps ?? 9;
   const pct = done === 'success' ? 100 : Math.round((step / total) * 100);
 
+  const rollback = status?.kind === 'rollback';
   const headline =
     done === 'failed'
-      ? 'The update failed and was rolled back'
+      ? rollback
+        ? 'The rollback failed; nothing was changed'
+        : 'The update failed and was rolled back'
       : done === 'success'
-        ? 'Update complete'
+        ? rollback
+          ? 'Rolled back'
+          : 'Update complete'
         : unreachable
           ? 'Restarting the site'
           : STAGE_LABELS[status?.stage ?? 'starting'] ?? 'Working';
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
+    <div className="rounded-xl border border-line bg-surface p-4 text-left">
       <div className="flex items-center gap-2.5">
         {done === 'success' ? (
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
@@ -107,8 +130,10 @@ export function UpdateProgress({ onFinished }: { onFinished?: () => void }) {
           <p className="text-xs text-ink-muted">
             {done
               ? done === 'success'
-                ? 'The site is running the new version.'
-                : 'The site is still on the previous working version.'
+                ? rollback
+                  ? 'The site is running the previous version.'
+                  : 'The site is running the new version.'
+                : 'The site is still on the version it was on before.'
               : unreachable
                 ? 'The site is coming back up. This page will carry on by itself.'
                 : `Step ${step} of ${total}`}

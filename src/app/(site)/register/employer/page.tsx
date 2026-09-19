@@ -18,7 +18,8 @@ export default function EmployerRegisterPage() {
   return (
     <>
       <PageHeader
-        title="Register as an employer"
+        title={site.words.register_employer_heading}
+        field="register_employer_heading"
         breadcrumbs={[{ href: '/register/employer', label: 'For employers' }]}
       />
 

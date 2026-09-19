@@ -9,7 +9,11 @@ import { formatDateTime, timeAgo, cn } from '@/lib/utils';
 import { PageTitle, Panel, StatCard, EmptyState, DetailList } from '@/components/admin/ui';
 import { InfoNote } from '@/components/admin/interactive';
 import { SystemActions } from './SystemActions';
-import { createBackupNow, checkForUpdates, runUpdateNow, pruneAnalyticsNow } from './actions';
+import { UpdateCenter } from './UpdateCenter';
+import {
+  createBackupNow, runUpdateNow, pruneAnalyticsNow, fetchUpdateInfo, runRollback, setAutoUpdate,
+} from './actions';
+import { gitInfo, readHistory, readAutoState, updateRunning } from '@/lib/updates';
 
 export const metadata = { title: 'Backups & updates' };
 
@@ -90,7 +94,8 @@ export default async function SystemPage() {
       }>('SELECT * FROM audit_log ORDER BY id DESC LIMIT 60')
     : [];
 
-  const repo = str(settings, 'sys_repo_url');
+  const canUpdate = can(user, 'system.update');
+  const autoState = readAutoState();
 
   return (
     <>
@@ -113,14 +118,24 @@ export default async function SystemPage() {
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
+          {canUpdate && (
+            <UpdateCenter
+              info={gitInfo()}
+              history={readHistory()}
+              auto={str(settings, 'sys_auto_update') === '1'}
+              checkedAt={autoState.checked_at ?? null}
+              running={updateRunning()}
+              fetchInfo={fetchUpdateInfo}
+              update={runUpdateNow}
+              rollback={runRollback}
+              setAuto={setAutoUpdate}
+            />
+          )}
+
           <SystemActions
             canBackup={can(user, 'system.backup')}
-            canUpdate={can(user, 'system.update')}
             canPrune={can(user, 'system.logs')}
-            repoConfigured={!!repo}
             backup={createBackupNow}
-            check={checkForUpdates}
-            update={runUpdateNow}
             prune={pruneAnalyticsNow}
           />
 
@@ -241,10 +256,16 @@ export default async function SystemPage() {
                     'chip mb-3',
                     lastUpdate.status === 'success'
                       ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20'
-                      : 'bg-rose-50 text-rose-700 ring-rose-600/20'
+                      : lastUpdate.status === 'rolled-back'
+                        ? 'bg-amber-50 text-amber-800 ring-amber-600/20'
+                        : 'bg-rose-50 text-rose-700 ring-rose-600/20'
                   )}
                 >
-                  {lastUpdate.status === 'success' ? 'Succeeded' : 'Failed and rolled back'}
+                  {lastUpdate.status === 'success'
+                    ? 'Succeeded'
+                    : lastUpdate.status === 'rolled-back'
+                      ? `Rolled back by hand, database ${String(lastUpdate.database ?? 'kept')}`
+                      : 'Failed and rolled back'}
                 </span>
                 <DetailList
                   columns={1}

@@ -46,6 +46,7 @@ export async function GET() {
   return NextResponse.json(
     {
       running,
+      kind: progress?.kind === 'rollback' ? 'rollback' : 'update',
       step: progress?.step ?? 0,
       totalSteps: progress?.total_steps ?? 9,
       stage: progress?.stage ?? null,

@@ -2,6 +2,8 @@
 // npm run update            pull, migrate, build - with automatic rollback
 // npm run update:check      report only; changes nothing
 // npm run update -- --yes   skip the confirmation prompt (for cron/admin panel)
+// npm run update -- --auto  started by the server's own timer; refuses to
+//                           touch a folder with uncommitted edits
 //
 // The guarantees this script makes:
 //   1. The database is backed up BEFORE anything is touched.
@@ -41,6 +43,7 @@ const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes('--check');
 const ASSUME_YES = args.includes('--yes') || args.includes('-y');
 const SKIP_BUILD = args.includes('--no-build');
+const AUTO = args.includes('--auto');
 
 const TOTAL_STEPS = 9;
 const startedAt = new Date();
@@ -68,6 +71,7 @@ function writeProgress(extra = {}) {
       JSON.stringify(
         {
           running: true,
+          kind: 'update',
           pid: process.pid,
           step: currentStep,
           total_steps: TOTAL_STEPS,
@@ -191,6 +195,12 @@ async function main() {
     warn('There are uncommitted local changes:');
     say(dirty);
     warn('Updating would overwrite them. Commit or discard them first.');
+    if (AUTO) {
+      // Nobody is watching an automatic update, so it never decides on its
+      // own that someone's edits on the server can be thrown away.
+      writeProgress({ running: false, status: 'failed', error: 'Local edits on the server. Automatic update skipped.' });
+      process.exit(1);
+    }
     if (!ASSUME_YES && !CHECK_ONLY) process.exit(1);
   }
 
@@ -263,16 +273,18 @@ async function main() {
       run(`git merge --ff-only origin/${branch}`);
     } catch (e) {
       // A fast-forward is refused when this copy has commits the remote does
-      // not, which happens if someone edited a file on the server or if the
-      // published history was rewritten. Saying so plainly beats a raw git
-      // error, because the fix is different in each case.
-      throw new Error(
-        `The new code could not be applied on top of what is here.\n` +
-          `This copy has ${ahead} commit(s) the remote does not.\n` +
-          `Either discard them:  git reset --hard origin/${branch}\n` +
-          `or keep them and merge by hand. Nothing has been changed.\n\n` +
-          e.message
-      );
+      // not. On a server that only ever receives code from the repository,
+      // that means the published history was rewritten, and the repository is
+      // the version to trust. The old commit is still the rollback point, and
+      // the backup from step 2 covers the database, so nothing is lost.
+      if (dirty) {
+        throw new Error(
+          `The new code could not be applied on top of what is here, and there are ` +
+            `uncommitted edits on the server. Nothing has been changed.\n\n` + e.message
+        );
+      }
+      warn(`History on the remote was rewritten; moving to origin/${branch} (was ${ahead} ahead).`);
+      run(`git reset --hard origin/${branch}`);
     }
     const newCommit = git('rev-parse HEAD');
     ok(`Now at ${newCommit.slice(0, 8)}`);
@@ -340,6 +352,7 @@ async function main() {
     pruneBackups(Number(process.env.BACKUP_RETENTION || 10));
     writeStatus({
       status: 'success',
+      target: remoteCommit,
       from: rollbackPoint,
       to: newCommit,
       schema_from: currentSchema,
@@ -347,6 +360,15 @@ async function main() {
       backup: backup.name,
       finished_at: new Date().toISOString(),
       log: path.basename(logFile),
+    });
+
+    appendHistory({
+      from: rollbackPoint,
+      to: newCommit,
+      backup: backup.name,
+      schema_from: currentSchema,
+      schema_to: newSchema,
+      finished_at: new Date().toISOString(),
     });
 
     say('');
@@ -422,6 +444,7 @@ async function main() {
 
     writeStatus({
       status: 'failed',
+      target: remoteCommit,
       failed_at_stage: stageReached,
       error: err.message,
       rolled_back_to: rollbackPoint,
@@ -452,6 +475,22 @@ function readIfExists(p) {
   } catch {
     return null;
   }
+}
+
+/**
+ * The list of updates installed on this server, which the rollback reads to
+ * know which version came before and which backup belongs to it.
+ */
+function appendHistory(entry) {
+  const file = path.join(LOG_DIR, 'update-history.json');
+  let list = [];
+  try {
+    list = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {}
+  list.push(entry);
+  try {
+    fs.writeFileSync(file, JSON.stringify(list.slice(-30), null, 2));
+  } catch {}
 }
 
 function writeStatus(obj) {

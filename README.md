@@ -103,6 +103,8 @@ npm run create-admin
 | `npm run restore -- <name>` | Restores a backup (backs up the current state first) |
 | `npm run update:check` | Checks the repository for a newer version, changes nothing |
 | `npm run update` | Applies an update, with automatic rollback on failure |
+| `npm run rollback -- --keep-db` | Goes back to the version before the last update, keeping the database |
+| `npm run rollback -- --restore-db` | The same, and puts back the database from before that update |
 
 ---
 
@@ -140,6 +142,22 @@ never delete them.
 If any step fails, the code is reset to the previous commit, the database is
 restored from the backup taken at step 2, the previous version is rebuilt, and
 a full log is written to `data/logs/`. The site is never left half-updated.
+
+Everything above can also be done from **Backups & updates** in the admin
+panel, which shows what is waiting to be installed and follows each step live.
+
+**Automatic updates.** Switch on "Update automatically" (on the dashboard or
+the Backups & updates page) and the server checks the repository by itself
+every 15 minutes (`AUTO_UPDATE_MINUTES` in `.env` changes that). No webhook is
+needed. A new version goes through exactly the same steps as a manual update.
+It skips a version that already failed to install, and a version that was
+rolled back from, and never touches a server with uncommitted edits.
+
+**Rolling back.** "Roll back" goes to the version before the last update. You
+choose whether to keep the database as it is, or to put back the backup taken
+just before that update (offered only while that backup still exists). The
+current database is backed up first either way, uploaded files are never
+touched, and a failed rollback puts everything back as it was.
 
 Migrations are append-only. Never edit one that has already shipped - the
 runner stores a checksum and refuses to continue if a file changed. Add a new

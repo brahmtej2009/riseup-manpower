@@ -60,6 +60,7 @@ export default async function PostsPage({
     <>
       <PageHeader
         title={str(s, 'posts_heading', 'Posts')}
+        field="posts_heading"
         breadcrumbs={[{ href: '/posts', label: 'Posts' }]}
       />
 
