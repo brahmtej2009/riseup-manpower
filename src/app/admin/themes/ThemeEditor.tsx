@@ -150,7 +150,7 @@ export function ThemeEditor({
           className="flex shrink-0 flex-col border-r border-line bg-surface"
           style={{ width: `${railWidth}px` }}
         >
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-2">
             {page.sections.map((section) => {
               const Icon = ICONS[section.icon] ?? LayoutTemplate;
               const isOpen = openSection === section.key;

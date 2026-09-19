@@ -78,6 +78,7 @@ export default async function HomePage() {
         heading={str(s, 'posts_heading', 'Posts')}
         square={squareFeed}
         showMeta={bool(s, 'posts_show_meta', true)}
+        seeAll={site.words.posts_see_all}
       />
 
       <GallerySection
@@ -91,6 +92,7 @@ export default async function HomePage() {
           team={team}
           heading={str(s, 'team_heading', 'Our team')}
           intro={str(s, 'team_intro')}
+          seeAll={site.words.team_see_all}
         />
       )}
 

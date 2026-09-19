@@ -11,11 +11,11 @@ import { ThemeToggle } from './Theme';
 import type { SiteInfo } from '@/lib/settings';
 
 const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/team', label: 'Our Team' },
-  { href: '/posts', label: 'Posts' },
-  { href: '/contact', label: 'Contact' },
-];
+  { href: '/', key: 'nav_home' },
+  { href: '/team', key: 'nav_team' },
+  { href: '/posts', key: 'nav_posts' },
+  { href: '/contact', key: 'nav_contact' },
+] as const;
 
 /**
  * Header.
@@ -130,7 +130,7 @@ export function Header({
                   isActive(item.href) ? 'text-ink' : 'underline-grow text-ink-muted hover:text-ink'
                 )}
               >
-                {item.label}
+                <span data-field={item.key}>{site.words[item.key]}</span>
                 {isActive(item.href) && (
                   <motion.span
                     layoutId="nav-underline"
@@ -164,7 +164,7 @@ export function Header({
               className="group hidden items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-[0.8125rem] font-bold uppercase tracking-wider text-white shadow-glow transition hover:bg-brand-700 sm:inline-flex"
               onClick={() => trackEvent('cta.employer', { category: 'cta', label: 'header' })}
             >
-              Hire Staff
+              <span data-field="header_cta">{site.words.header_cta}</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
 
@@ -236,7 +236,7 @@ export function Header({
                         : 'text-ink-soft hover:bg-surface-alt hover:text-ink'
                     )}
                   >
-                    {item.label}
+                    <span data-field={item.key}>{site.words[item.key]}</span>
                     <ChevronRight className="h-4 w-4 opacity-40" />
                   </Link>
                 ))}
@@ -247,10 +247,10 @@ export function Header({
                   href="/register/employer"
                   className="btn w-full bg-brand-600 text-white hover:bg-brand-700"
                 >
-                  Hire Staff
+                  <span data-field="header_cta">{site.words.header_cta}</span>
                 </Link>
                 <Link href="/register/candidate" className="btn-outline w-full">
-                  Find a Job
+                  <span data-field="menu_cta_candidate">{site.words.menu_cta_candidate}</span>
                 </Link>
                 {site.phone && (
                   <a

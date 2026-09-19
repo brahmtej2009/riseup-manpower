@@ -194,7 +194,7 @@ export function Hero({
                     <Counter value={stat.value} suffix={stat.suffix} />
                   </dd>
                   <dt className="mt-1.5 text-[0.6875rem] uppercase tracking-wider text-ink-muted">
-                    {stat.label}
+                    <span data-field={`stats_${stat.key}_label`}>{stat.label}</span>
                   </dt>
                 </div>
               ))}

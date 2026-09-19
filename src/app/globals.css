@@ -139,6 +139,13 @@
     --radius: 0;
   }
 
+  /* The site's corners come from many Tailwind classes, so the choice is
+     applied here in one place. Circles (round buttons, avatars, dots) are left
+     alone, and so is the admin panel, which keeps its own look. */
+  :root[data-corners='square'] body *:not(.rounded-full):not(.admin-scope):not(.admin-scope *) {
+    border-radius: 0 !important;
+  }
+
   * {
     @apply border-line;
   }

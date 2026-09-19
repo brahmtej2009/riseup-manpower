@@ -60,6 +60,16 @@ export function ThemePreview({
   version?: number;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const area = useRef<HTMLDivElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
+
+  // The size the frame is given, in its own (unzoomed) pixels. Worked out by
+  // measuring rather than with CSS maths, because browsers disagree on how a
+  // percentage size combines with `zoom`: the CSS version filled the space in
+  // one browser and left a band of grey around a shrunken site in another.
+  const [box, setBox] = useState({ w: 1200, h: 800 });
+  const boxRef = useRef(box);
+  boxRef.current = box;
   const [device, setDevice] = useState<Device>('desktop');
   const [dark, setDark] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -195,6 +205,39 @@ export function ThemePreview({
     }
   };
 
+  // Keeps the frame exactly the size of the space around it. Both rectangles
+  // are measured in the same screen pixels, so the ratio between them is the
+  // correction whatever the zoom is.
+  useEffect(() => {
+    const outer = area.current;
+    const inner = shell.current;
+    if (!outer || !inner) return;
+    const fit = () => {
+      const o = outer.getBoundingClientRect();
+      const i = inner.getBoundingClientRect();
+      if (!o.width || !o.height || !i.width || !i.height) return;
+      // A chosen device keeps its own width; only full width follows the space.
+      const w =
+        WIDTHS[device] === null ? Math.floor((boxRef.current.w * o.width) / i.width) : boxRef.current.w;
+      const h = Math.floor((boxRef.current.h * o.height) / i.height);
+      if (w !== boxRef.current.w || h !== boxRef.current.h) setBox({ w, h });
+    };
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(outer);
+    fit();
+    return () => ro.disconnect();
+  }, [picking, picked, device]);
+
+  // Typing shows straight away in the preview, before anything is saved.
+  useEffect(() => {
+    if (!picked) return;
+    doc()
+      ?.querySelectorAll<HTMLElement>(`[data-field="${CSS.escape(picked)}"]`)
+      .forEach((el) => {
+        el.textContent = draft;
+      });
+  }, [draft, picked]);
+
   const width = WIDTHS[device];
   const field = picked ? PREVIEW_FIELDS[picked] : null;
 
@@ -297,7 +340,11 @@ export function ThemePreview({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setPicked(null)}
+                  onClick={() => {
+                    // Anything typed but not saved is taken back off the page.
+                    if (draft !== (current[picked] ?? '')) reload();
+                    setPicked(null);
+                  }}
                   className="inline-flex items-center gap-1 text-xs text-ink-muted transition hover:text-ink"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -354,7 +401,9 @@ export function ThemePreview({
                   </span>
                 )}
                 <span className="ml-auto text-xs text-ink-muted">
-                  Leave it empty and nothing is shown.
+                  {field?.fallback
+                    ? 'Leave it empty to use the default.'
+                    : 'Leave it empty and nothing is shown.'}
                 </span>
               </div>
             </div>
@@ -370,20 +419,17 @@ export function ThemePreview({
           panel's 80% zoom so the site is always judged at its true size.
           A chosen device width does get a border, because there the edge of
           the screen is the thing being looked at. */}
-      <div className="min-h-0 flex-1 overflow-hidden bg-surface-alt">
+      <div ref={area} className="min-h-0 flex-1 overflow-hidden bg-surface-alt">
         <div
+          ref={shell}
           className={cn(
             'admin-unzoom mx-auto overflow-hidden bg-surface',
             width !== null && 'border border-line shadow-card'
           )}
           style={{
-            // The frame is zoomed back up by 1/zoom, so to end up painting at
-            // exactly the space available its own width must be multiplied by
-            // the zoom, not divided. Getting this backwards makes the frame
-            // overflow and the site inside think the window is far narrower
-            // than it is, which is what pushed it into its tablet layout.
-            width: width ? `${width}px` : 'calc(100% * var(--admin-zoom, 0.8))',
-            height: 'calc(100% * var(--admin-zoom, 0.8))',
+            // Measured to fill the space exactly, see the effect above.
+            width: width ? `${width}px` : `${box.w}px`,
+            height: `${box.h}px`,
           }}
         >
           <iframe

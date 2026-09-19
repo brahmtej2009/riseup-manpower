@@ -33,7 +33,7 @@ export function Footer({ site }: { site: SiteInfo }) {
                 )}
               </span>
               <span>
-                <span className="block font-display text-[1.0625rem] font-bold uppercase tracking-tight text-ink">
+                <span data-field="company_name" className="block font-display text-[1.0625rem] font-bold uppercase tracking-tight text-ink">
                   {site.name}
                 </span>
                 {site.tagline && (
@@ -67,17 +67,19 @@ export function Footer({ site }: { site: SiteInfo }) {
           {/* Links */}
           <div className="lg:col-span-3">
             <h3 className="mb-4 text-[0.8125rem] font-semibold uppercase tracking-wider text-ink">
-              Company
+              <span data-field="footer_links_heading">{site.words.footer_links_heading}</span>
             </h3>
             <ul className="space-y-2.5 text-sm">
-              {[
-                ['/team', 'Our team'],
-                ['/posts', 'Posts'],
-                ['/contact', 'Contact'],
-              ].map(([href, label]) => (
+              {(
+                [
+                  ['/team', 'nav_team'],
+                  ['/posts', 'nav_posts'],
+                  ['/contact', 'nav_contact'],
+                ] as const
+              ).map(([href, key]) => (
                 <li key={href}>
                   <Link href={href} className="transition hover:text-brand-600">
-                    {label}
+                    <span data-field={key}>{site.words[key]}</span>
                   </Link>
                 </li>
               ))}
@@ -88,7 +90,7 @@ export function Footer({ site }: { site: SiteInfo }) {
           {/* Contact */}
           <div className="lg:col-span-3">
             <h3 className="mb-4 text-[0.8125rem] font-semibold uppercase tracking-wider text-ink">
-              Get in touch
+              <span data-field="footer_contact_heading">{site.words.footer_contact_heading}</span>
             </h3>
             <ul className="space-y-3.5 text-sm">
               {site.address.length > 0 && (
@@ -131,9 +133,9 @@ export function Footer({ site }: { site: SiteInfo }) {
                 <li className="flex gap-3">
                   <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" strokeWidth={2.2} />
                   <span>
-                    {site.workingDays}
+                    {site.workingDays && <span data-field="working_days">{site.workingDays}</span>}
                     {site.workingDays && site.workingHours && <br />}
-                    {site.workingHours}
+                    {site.workingHours && <span data-field="working_hours">{site.workingHours}</span>}
                   </span>
                 </li>
               )}
@@ -148,7 +150,7 @@ export function Footer({ site }: { site: SiteInfo }) {
                            text-sm font-semibold text-white transition hover:bg-emerald-500"
               >
                 <SocialIcon name="whatsapp" className="h-4 w-4" />
-                Message on WhatsApp
+                <span data-field="footer_whatsapp">{site.words.footer_whatsapp}</span>
               </a>
             )}
           </div>
@@ -157,21 +159,21 @@ export function Footer({ site }: { site: SiteInfo }) {
         {/* Bottom bar */}
         <div className="flex flex-col gap-3 border-t border-line py-6 text-[0.8125rem] sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {years} {site.legalName}. All rights reserved.
+            © {years} {site.legalName}. <span data-field="footer_rights">{site.words.footer_rights}</span>
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link
               href="/admin"
               className="inline-flex items-center gap-1 text-ink-muted transition hover:text-brand-600"
             >
-              Staff login
+              <span data-field="footer_staff_login">{site.words.footer_staff_login}</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
         {site.footerNote && (
-          <p className="border-t border-line py-4 text-xs text-ink-muted">{site.footerNote}</p>
+          <p data-field="sys_footer_note" className="border-t border-line py-4 text-xs text-ink-muted">{site.footerNote}</p>
         )}
       </div>
     </footer>

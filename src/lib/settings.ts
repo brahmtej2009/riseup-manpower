@@ -131,7 +131,27 @@ export interface SiteInfo {
   footerNote: string;
   /** First year in the footer copyright line. 0 means show only this year. */
   copyrightStartYear: number;
+  /** Menu, button and footer wording, each with its old text as the default. */
+  words: Record<WordKey, string>;
 }
+
+export const WORD_DEFAULTS = {
+  nav_home: 'Home',
+  nav_team: 'Our Team',
+  nav_posts: 'Posts',
+  nav_contact: 'Contact',
+  header_cta: 'Hire Staff',
+  menu_cta_candidate: 'Find a Job',
+  posts_see_all: 'See all',
+  team_see_all: 'See the team',
+  footer_links_heading: 'Company',
+  footer_contact_heading: 'Get in touch',
+  footer_whatsapp: 'Message on WhatsApp',
+  footer_rights: 'All rights reserved.',
+  footer_staff_login: 'Staff login',
+} as const;
+
+export type WordKey = keyof typeof WORD_DEFAULTS;
 
 export const getSiteInfo = cache((): SiteInfo => {
   const s = getSettings();
@@ -186,6 +206,9 @@ export const getSiteInfo = cache((): SiteInfo => {
       // typo in the settings screen can never produce "© 20 - 2026".
       return y >= 1900 && y <= thisYear ? y : 0;
     })(),
+    words: Object.fromEntries(
+      Object.entries(WORD_DEFAULTS).map(([k, d]) => [k, str(s, k, d)])
+    ) as Record<WordKey, string>,
   };
 });
 

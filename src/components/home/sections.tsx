@@ -23,7 +23,7 @@ export function SectionHeading({
   title: string;
   intro?: string;
   align?: 'left' | 'center';
-  action?: { href: string; label: string };
+  action?: { href: string; label: string; field?: string };
   /** Setting key, so the heading can be edited straight from the preview. */
   field?: string;
   introField?: string;
@@ -54,7 +54,7 @@ export function SectionHeading({
 
       {action && (
         <Link href={action.href} className="btn-outline btn-sm shrink-0 self-start sm:self-auto">
-          {action.label}
+          <span data-field={action.field}>{action.label}</span>
           <ArrowRight className="h-4 w-4" />
         </Link>
       )}
@@ -199,9 +199,11 @@ export function PostsSection({
   heading,
   square = true,
   showMeta = true,
+  seeAll = 'See all',
 }: {
   items: Post[];
   heading: string;
+  seeAll?: string;
   /** Square feed tiles, or the wider notice cards. Set on the Themes screen. */
   square?: boolean;
   showMeta?: boolean;
@@ -215,7 +217,7 @@ export function PostsSection({
           <SectionHeading
             title={heading}
             field="posts_heading"
-            action={{ href: '/posts', label: 'See all' }}
+            action={{ href: '/posts', label: seeAll, field: 'posts_see_all' }}
           />
         </Reveal>
 
@@ -245,7 +247,9 @@ export function TeamSection({
   intro,
   limit = 6,
   showAllLink = true,
+  seeAll = 'See the team',
 }: {
+  seeAll?: string;
   team: TeamMember[];
   heading: string;
   intro?: string;
@@ -266,7 +270,7 @@ export function TeamSection({
             introField="team_intro"
             action={
               showAllLink && team.length > limit
-                ? { href: '/team', label: 'See the team' }
+                ? { href: '/team', label: seeAll, field: 'team_see_all' }
                 : undefined
             }
           />

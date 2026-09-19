@@ -53,10 +53,10 @@ export const THEME_PAGES: ThemePage[] = [
         icon: 'BarChart3',
         keys: [
           'stats_show',
-          'stats_employers_auto', 'stats_employers_value', 'stats_employers_label',
-          'stats_placed_auto', 'stats_placed_value', 'stats_placed_label',
-          'stats_years_auto', 'stats_years_value', 'stats_years_label',
-          'stats_industries_auto', 'stats_industries_value', 'stats_industries_label',
+          'stats_employers_auto', 'stats_employers_value',
+          'stats_placed_auto', 'stats_placed_value',
+          'stats_years_auto', 'stats_years_value',
+          'stats_industries_auto', 'stats_industries_value',
         ],
         note:
           'A figure of zero is left off the website rather than shown as nothing. ' +
@@ -156,7 +156,10 @@ export const isEditableKey = (key: string): boolean => EDITABLE_KEYS.includes(ke
  * clicking the heading. The key is the `data-field` attribute on the element
  * in the website markup.
  */
-export const PREVIEW_FIELDS: Record<string, { label: string; multiline?: boolean }> = {
+export const PREVIEW_FIELDS: Record<
+  string,
+  { label: string; multiline?: boolean; /** Goes back to its default when emptied. */ fallback?: boolean }
+> = {
   company_name: { label: 'Company name' },
   tagline: { label: 'Tagline' },
   hero_title: { label: 'Heading' },
@@ -176,6 +179,26 @@ export const PREVIEW_FIELDS: Record<string, { label: string; multiline?: boolean
   cta_heading: { label: 'Closing heading' },
   social_heading: { label: 'Follow us heading' },
   social_feed_heading: { label: 'Latest posts heading' },
+  stats_employers_label: { label: 'Figure label', fallback: true },
+  stats_placed_label: { label: 'Figure label', fallback: true },
+  stats_years_label: { label: 'Figure label', fallback: true },
+  stats_industries_label: { label: 'Figure label', fallback: true },
+  nav_home: { label: 'Menu item', fallback: true },
+  nav_team: { label: 'Menu item', fallback: true },
+  nav_posts: { label: 'Menu item', fallback: true },
+  nav_contact: { label: 'Menu item', fallback: true },
+  header_cta: { label: 'Header button', fallback: true },
+  menu_cta_candidate: { label: 'Mobile menu job button', fallback: true },
+  posts_see_all: { label: 'Posts link', fallback: true },
+  team_see_all: { label: 'Team link', fallback: true },
+  footer_links_heading: { label: 'Footer links heading', fallback: true },
+  footer_contact_heading: { label: 'Footer contact heading', fallback: true },
+  footer_whatsapp: { label: 'WhatsApp button', fallback: true },
+  footer_rights: { label: 'Copyright wording', fallback: true },
+  footer_staff_login: { label: 'Staff login link', fallback: true },
+  working_days: { label: 'Working days' },
+  working_hours: { label: 'Working hours' },
+  sys_footer_note: { label: 'Footer note', multiline: true },
 };
 
 export const isPreviewField = (key: string): boolean =>
