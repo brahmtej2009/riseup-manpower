@@ -19,7 +19,6 @@ import {
   SocialFeedSection,
 } from '@/components/home/sections';
 
-export const revalidate = 60;
 
 export default async function HomePage() {
   const s = getSettings();

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { HardDriveDownload, RefreshCw, Download, Trash2, AlertTriangle, Terminal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UpdateProgress } from './UpdateProgress';
 import { Panel } from '@/components/admin/ui';
 import { ResultBanner } from '@/components/admin/interactive';
 import type { ActionResult } from '@/lib/admin-actions';
@@ -31,6 +32,7 @@ export function SystemActions({
   const [result, setResult] = useState<{ ok?: boolean; message?: string; error?: string } | null>(null);
   const [output, setOutput] = useState('');
   const [confirmText, setConfirmText] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   const run = async (name: string, fn: () => Promise<ActionResult<{ output: string }> | ActionResult>) => {
     setBusy(name);
@@ -159,9 +161,14 @@ export function SystemActions({
           <p className="mt-1.5 text-sm leading-relaxed text-amber-900/90">
             The database is backed up first, migrations are applied without touching existing data,
             and if anything fails the code and the database are rolled back automatically. The site
-            will need restarting afterwards.
+            restarts itself when it is done.
           </p>
 
+          {updating ? (
+            <div className="mt-3">
+              <UpdateProgress />
+            </div>
+          ) : (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input
               type="text"
@@ -173,30 +180,23 @@ export function SystemActions({
             />
             <button
               type="button"
-              disabled={!!busy || confirmText.trim().toUpperCase() !== 'UPDATE'}
-              onClick={() => {
+              disabled={!!busy || updating || confirmText.trim().toUpperCase() !== 'UPDATE'}
+              onClick={async () => {
                 const fd = new FormData();
                 fd.set('confirm', 'UPDATE');
-                void run('update', () => update(fd));
+                // The action only starts the update and returns; everything
+                // after this point is watched by UpdateProgress.
+                const res = await update(fd);
+                if (res.ok) setUpdating(true);
+                else setResult(res);
               }}
-              className={cn(
-                'btn btn-sm text-white',
-                busy === 'update' ? 'bg-amber-700' : 'bg-amber-600 hover:bg-amber-700'
-              )}
+              className="btn btn-sm bg-amber-600 text-white hover:bg-amber-700"
             >
-              {busy === 'update' ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Updating - this can take a few minutes…
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Apply the update
-                </>
-              )}
+              <Download className="h-4 w-4" />
+              Apply the update
             </button>
           </div>
+          )}
         </div>
       )}
     </Panel>

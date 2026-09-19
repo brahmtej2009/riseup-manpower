@@ -13,7 +13,6 @@ import { PostCard } from '@/components/cards';
 import { PostFeed } from '@/components/PostTile';
 import { Reveal, RevealGroup, RevealItem } from '@/components/ui/Reveal';
 
-export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Posts',

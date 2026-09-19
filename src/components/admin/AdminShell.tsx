@@ -67,12 +67,6 @@ export function AdminShell({
 
   const current = nav.find((n) => isActive(n));
 
-  /**
-   * The Themes screen is an editor, not a list. It gets the whole window:
-   * a slim bar instead of the usual header, and no padding around the content,
-   * so the preview of the website is as large as the screen allows.
-   */
-  const focus = pathname === '/admin/themes';
 
   const navList = (
     <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
@@ -134,7 +128,7 @@ export function AdminShell({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-[var(--admin-vh)] bg-slate-50">
       {/* Sidebar - desktop */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[16.5rem] flex-col bg-ink lg:flex">
         {brand}
@@ -189,29 +183,18 @@ export function AdminShell({
       {/* Content */}
       <div className="lg:pl-[16.5rem]">
         <header
-          className={cn(
-            'sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/85 backdrop-blur-xl',
-            focus ? 'h-12 px-3 sm:px-4' : 'h-16 px-4 sm:px-6'
-          )}
+          className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/85 px-4 backdrop-blur-xl sm:px-6"
         >
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className={cn(
-              'grid place-items-center rounded-xl border border-slate-200 text-ink lg:hidden',
-              focus ? 'h-8 w-8' : 'h-10 w-10'
-            )}
+            className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-ink lg:hidden"
             aria-label="Open menu"
           >
-            <Menu className={focus ? 'h-4 w-4' : 'h-5 w-5'} />
+            <Menu className="h-5 w-5" />
           </button>
 
-          <p
-            className={cn(
-              'flex-1 truncate font-display font-semibold text-ink',
-              focus ? 'text-[0.8125rem]' : 'text-base'
-            )}
-          >
+          <p className="flex-1 truncate font-display text-base font-semibold text-ink">
             {current?.label ?? 'Admin'}
           </p>
 
@@ -222,20 +205,12 @@ export function AdminShell({
                 e.stopPropagation();
                 setMenuOpen((v) => !v);
               }}
-              className={cn(
-                'flex items-center gap-2.5 rounded-xl border border-slate-200 transition hover:bg-slate-50',
-                focus ? 'p-1' : 'py-1.5 pl-1.5 pr-3'
-              )}
+              className="flex items-center gap-2.5 rounded-xl border border-slate-200 py-1.5 pl-1.5 pr-3 transition hover:bg-slate-50"
             >
-              <span
-                className={cn(
-                  'grid place-items-center rounded-lg bg-brand-600 font-bold text-white',
-                  focus ? 'h-7 w-7 text-[0.625rem]' : 'h-8 w-8 text-xs'
-                )}
-              >
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-xs font-bold text-white">
                 {initials(user.name)}
               </span>
-              <span className={cn('text-left', focus ? 'hidden' : 'hidden sm:block')}>
+              <span className="hidden text-left sm:block">
                 <span className="block text-[0.8125rem] font-semibold leading-tight text-ink">
                   {user.name}
                 </span>
@@ -243,7 +218,7 @@ export function AdminShell({
                   {user.isSuper ? 'Super admin' : user.role.replace('_', ' ')}
                 </span>
               </span>
-              {!focus && <ChevronDown className="h-4 w-4 text-ink-muted" />}
+              <ChevronDown className="h-4 w-4 text-ink-muted" />
             </button>
 
             <AnimatePresence>
@@ -290,7 +265,7 @@ export function AdminShell({
           </div>
         </header>
 
-        <main className={focus ? '' : 'p-4 sm:p-6 lg:p-8'}>{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

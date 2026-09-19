@@ -47,11 +47,17 @@ export function ThemePreview({
   values,
   editable,
   save,
+  path = '/',
+  version = 0,
 }: {
   /** Current value of every field that can be edited from the preview. */
   values: Record<string, string>;
   editable: boolean;
   save: (fd: FormData) => Promise<ActionResult>;
+  /** Which page of the website to show. */
+  path?: string;
+  /** Bumped by the editor after a save, to pull the change into the preview. */
+  version?: number;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [device, setDevice] = useState<Device>('desktop');
@@ -155,11 +161,23 @@ export function ThemePreview({
     if (ready) paint();
   }, [ready, paint]);
 
+  // A save anywhere in the editor bumps `version`; the preview follows.
+  const firstVersion = useRef(true);
+  useEffect(() => {
+    if (firstVersion.current) {
+      firstVersion.current = false;
+      return;
+    }
+    reload();
+    // reload is stable for this purpose: it only reads refs and state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [version]);
+
   const reload = () => {
     scrollBack.current = frame.current?.contentWindow?.scrollY ?? 0;
     setReady(false);
     // Re-assigning the source is the only reliable reload across browsers.
-    if (frame.current) frame.current.src = `/?preview=${Date.now()}`;
+    if (frame.current) frame.current.src = `${path}?preview=${Date.now()}`;
   };
 
   const commit = async () => {
@@ -183,8 +201,8 @@ export function ThemePreview({
   return (
     <div className="flex h-full flex-col">
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface-soft px-3 py-2.5">
-        <span className="flex rounded-xl border border-line bg-surface p-0.5">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-line bg-surface px-2.5 py-1.5">
+        <span className="flex rounded-lg border border-line bg-surface-soft p-0.5">
           {(
             [
               ['desktop', Monitor, 'Full width'],
@@ -200,7 +218,7 @@ export function ThemePreview({
               aria-label={label}
               aria-pressed={device === key}
               className={cn(
-                'grid h-8 w-9 place-items-center rounded-lg transition',
+                'grid h-7 w-8 place-items-center rounded-md transition',
                 device === key ? 'bg-brand-600 text-white' : 'text-ink-muted hover:text-ink'
               )}
             >
@@ -212,7 +230,7 @@ export function ThemePreview({
         <button
           type="button"
           onClick={() => setDark((v) => !v)}
-          className="inline-flex h-9 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-[0.8125rem] font-medium text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
+          className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[0.75rem] font-medium text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
         >
           {dark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
           {dark ? 'Dark' : 'Light'}
@@ -227,14 +245,14 @@ export function ThemePreview({
             }}
             aria-pressed={picking}
             className={cn(
-              'inline-flex h-9 items-center gap-2 rounded-xl px-3 text-[0.8125rem] font-semibold transition',
+              'inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[0.75rem] font-semibold transition',
               picking
                 ? 'bg-brand-600 text-white'
                 : 'border border-line bg-surface text-ink-soft hover:border-brand-600 hover:text-brand-600'
             )}
           >
             <MousePointerClick className="h-4 w-4" />
-            {picking ? 'Picking text' : 'Edit text on the page'}
+            {picking ? 'Selecting' : 'Edit text'}
           </button>
         )}
 
@@ -244,17 +262,17 @@ export function ThemePreview({
             onClick={reload}
             title="Reload the preview"
             aria-label="Reload the preview"
-            className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-surface text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-line text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
           >
             <RotateCw className={cn('h-4 w-4', !ready && 'animate-spin')} />
           </button>
           <a
-            href="/"
+            href={path}
             target="_blank"
             rel="noopener noreferrer"
             title="Open the website in a new tab"
             aria-label="Open the website in a new tab"
-            className="grid h-9 w-9 place-items-center rounded-xl border border-line bg-surface text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-line text-ink-soft transition hover:border-brand-600 hover:text-brand-600"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -344,18 +362,36 @@ export function ThemePreview({
         </div>
       )}
 
-      {/* The website itself */}
-      <div className="flex-1 overflow-auto bg-surface-alt p-3">
+      {/* The website itself.
+          On full width there is no frame, no padding and no border at all:
+          anything around the edge eats into the width the site is given, and
+          a site squeezed into a narrower box drops into its own tablet layout,
+          which is not what it looks like to a visitor. The frame cancels the
+          panel's 80% zoom so the site is always judged at its true size.
+          A chosen device width does get a border, because there the edge of
+          the screen is the thing being looked at. */}
+      <div className="min-h-0 flex-1 overflow-hidden bg-surface-alt">
         <div
-          className="mx-auto h-full overflow-hidden rounded-xl border border-line bg-surface shadow-card transition-[max-width] duration-300"
-          style={{ maxWidth: width ? `${width}px` : '100%' }}
+          className={cn(
+            'admin-unzoom mx-auto overflow-hidden bg-surface',
+            width !== null && 'border border-line shadow-card'
+          )}
+          style={{
+            // The frame is zoomed back up by 1/zoom, so to end up painting at
+            // exactly the space available its own width must be multiplied by
+            // the zoom, not divided. Getting this backwards makes the frame
+            // overflow and the site inside think the window is far narrower
+            // than it is, which is what pushed it into its tablet layout.
+            width: width ? `${width}px` : 'calc(100% * var(--admin-zoom, 0.8))',
+            height: 'calc(100% * var(--admin-zoom, 0.8))',
+          }}
         >
           <iframe
             ref={frame}
-            src="/"
+            src={path}
             title="Website preview"
             onLoad={onLoad}
-            className="h-full min-h-[38rem] w-full border-0"
+            className="h-full w-full border-0"
           />
         </div>
       </div>

@@ -10,6 +10,28 @@ export interface SettingRow {
   label: string;
   hint: string;
   sort_order: number;
+  /** JSON array of {value,label} for a 'select', empty for everything else. */
+  options: string;
+}
+
+export interface SettingChoice {
+  value: string;
+  label: string;
+}
+
+/** The choices behind a 'select' setting. Empty if it is not one. */
+export function choices(row: Pick<SettingRow, 'options'>): SettingChoice[] {
+  if (!row.options) return [];
+  try {
+    const parsed = JSON.parse(row.options);
+    return Array.isArray(parsed)
+      ? parsed
+          .filter((o) => o && typeof o.value === 'string')
+          .map((o) => ({ value: String(o.value), label: String(o.label ?? o.value) }))
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -25,7 +47,7 @@ export const getSettings = cache((): Record<string, string> => {
 
 export const getSettingRows = cache((): SettingRow[] =>
   db.all<SettingRow>(
-    'SELECT key, value, type, group_name, label, hint, sort_order FROM settings ORDER BY group_name, sort_order, key'
+    'SELECT key, value, type, group_name, label, hint, sort_order, options FROM settings ORDER BY group_name, sort_order, key'
   )
 );
 
@@ -107,6 +129,8 @@ export interface SiteInfo {
   maintenance: boolean;
   maintenanceText: string;
   footerNote: string;
+  /** First year in the footer copyright line. 0 means show only this year. */
+  copyrightStartYear: number;
 }
 
 export const getSiteInfo = cache((): SiteInfo => {
@@ -155,6 +179,13 @@ export const getSiteInfo = cache((): SiteInfo => {
     maintenance: bool(s, 'sys_maintenance'),
     maintenanceText: str(s, 'sys_maintenance_text'),
     footerNote: str(s, 'sys_footer_note'),
+    copyrightStartYear: (() => {
+      const y = num(s, 'copyright_start_year', 0);
+      const thisYear = new Date().getFullYear();
+      // A year that is not a sensible four-digit past year is ignored, so a
+      // typo in the settings screen can never produce "© 20 - 2026".
+      return y >= 1900 && y <= thisYear ? y : 0;
+    })(),
   };
 });
 
@@ -192,10 +223,19 @@ export const getStats = cache((): Stat[] => {
   const build = (key: string, auto: number, suffix = '+'): Stat => {
     const isAuto = bool(s, `stats_${key}_auto`, true);
     const manual = num(s, `stats_${key}_value`, 0);
+
+    // A figure set to count automatically falls back to the figure typed in
+    // by hand while the count is still zero. Without this, a new install
+    // shows a lopsided row: the counted figures disappear until the first
+    // contacts are approved, leaving two figures where there should be four.
+    // The fallback is whatever the company entered itself, and the real count
+    // takes over the moment there is one.
+    const value = isAuto ? (auto > 0 ? auto : manual) : manual;
+
     return {
       key,
       label: str(s, `stats_${key}_label`, key),
-      value: isAuto ? auto : manual,
+      value,
       auto: isAuto,
       suffix,
     };

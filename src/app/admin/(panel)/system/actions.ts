@@ -51,6 +51,31 @@ function runScript(script: string, args: string[] = []): Promise<{ ok: boolean; 
   });
 }
 
+/**
+ * Starts a script and returns straight away, leaving it running.
+ *
+ * Used for the update, which outlives the request that began it: it restarts
+ * the server as its last act. The child is detached and its handles released
+ * so that stopping the server does not kill the update halfway through.
+ */
+function startDetached(
+  script: string,
+  args: string[] = []
+): { ok: true } | { ok: false; error: string } {
+  try {
+    const child = spawn(process.execPath, [path.join(ROOT, 'scripts', script), ...args], {
+      cwd: ROOT,
+      env: process.env,
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
 function stripAnsi(value: string): string {
   // Remove terminal colour codes so the output reads cleanly in the browser.
   return value.replace(/\[[0-9;]*m/g, '');
@@ -90,26 +115,24 @@ export async function runUpdateNow(formData: FormData): Promise<ActionResult<{ o
 
   await audit(g.user, 'system.update_start', 'system', '', 'Update started from the admin panel');
 
-  // The script itself backs up first and rolls everything back on failure.
-  const result = await runScript('update.mjs', ['--yes']);
+  // Started and left to run, rather than awaited.
+  //
+  // An update takes minutes and finishes by restarting this very server, so
+  // the request that starts it can never be answered - waiting on it is what
+  // produced "an unexpected response was received from the server". The
+  // script reports progress to a file instead, and the panel polls
+  // /api/admin/update-status, straight through the restart.
+  const started = startDetached('update.mjs', ['--yes']);
 
-  await audit(
-    g.user,
-    result.ok ? 'system.update_success' : 'system.update_failed',
-    'system',
-    '',
-    result.output.slice(-400)
-  );
+  if (!started.ok) {
+    return { ok: false, error: `The update could not be started. ${started.error}` };
+  }
 
-  revalidatePath('/admin/system');
-
-  return result.ok
-    ? { ok: true, message: 'Update applied. Restart the site for it to take effect.', data: { output: result.output } }
-    : {
-        ok: false,
-        error:
-          'The update failed and was rolled back automatically. The site is still on the previous working version.',
-      };
+  return {
+    ok: true,
+    message: 'Update started.',
+    data: { output: '' },
+  };
 }
 
 export async function pruneAnalyticsNow(): Promise<ActionResult> {

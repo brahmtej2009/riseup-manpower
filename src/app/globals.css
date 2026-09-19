@@ -115,7 +115,23 @@
     --shadow-rgb: 11 18 32;
     color-scheme: light;
     background-color: rgb(var(--bg));
-    min-height: 100vh;
+
+    /* The whole panel is drawn smaller than life, which fits noticeably more
+       on screen
+       without changing a single size in the markup. Because zoom scales the
+       coordinate space, a full-screen height inside here is 100vh divided by
+       the zoom, not 100vh - hence --admin-vh, which every full-height admin
+       layout uses in place of 100vh. */
+    --admin-zoom: 0.7;
+    --admin-vh: calc(100vh / 0.7);
+    zoom: var(--admin-zoom);
+    min-height: var(--admin-vh);
+  }
+
+  /* Undoes the panel zoom for one element. The website preview uses this so
+     the site is always shown at its true size, whatever the panel is set to. */
+  .admin-unzoom {
+    zoom: calc(1 / var(--admin-zoom, 0.8));
   }
 
   /* Square corners, if the company prefers them. */

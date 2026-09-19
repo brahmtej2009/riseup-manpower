@@ -1,88 +1,160 @@
 /**
- * What the Themes screen owns.
+ * What the Themes editor owns, and how it is laid out.
  *
- * Everything about how the website looks lives on that one screen, and these
- * groups are therefore not editable from the Settings screen. Keeping the
- * list in one place means neither screen can end up offering the same field
- * twice, or dropping one between them.
+ * The editor is organised the way someone actually thinks about a website:
+ * first which page, then which section of that page. It is deliberately not
+ * organised by which settings group a value happens to live in, because that
+ * is a detail of how the database is arranged, not anything a person editing
+ * their own website should have to know about.
  */
 
 export const THEME_GROUPS: readonly string[] = ['theme', 'branding', 'home', 'stats'];
 
-/** True if this settings group belongs to the Themes screen. */
+/** True if this settings group belongs to the Themes editor. */
 export const isThemeGroup = (group: string): boolean => THEME_GROUPS.includes(group);
 
-export type ThemeTabKey = 'appearance' | 'home' | 'figures' | 'addons';
-
-export interface ThemeTab {
-  key: ThemeTabKey;
+export interface ThemeSection {
+  key: string;
   label: string;
   icon: string;
-  description: string;
-  /** Settings groups shown under this tab, in order. */
-  groups: { group: string; title: string; hint?: string }[];
+  /** Settings shown as controls. Wording edited in the preview is not here. */
+  keys: string[];
+  /** A list managed on its own screen, such as the photographs or the logos. */
+  manage?: { href: string; label: string };
+  /** One short line. Anything longer belongs behind the information button. */
+  note?: string;
 }
 
-export const THEME_TABS: ThemeTab[] = [
-  {
-    key: 'appearance',
-    label: 'Appearance',
-    icon: 'Palette',
-    description: 'Light and dark mode, the colours and the logo.',
-    groups: [
-      {
-        group: 'theme',
-        title: 'Light and dark mode',
-        hint: 'Both versions of the website are always available. This decides which one a visitor sees first.',
-      },
-      {
-        group: 'branding',
-        title: 'Logo and colours',
-        hint: 'The brand colour is used for buttons, links and highlights in both modes.',
-      },
-    ],
-  },
+export interface ThemePage {
+  key: string;
+  label: string;
+  icon: string;
+  /** What the preview shows while this page is being edited. */
+  path: string;
+  sections: ThemeSection[];
+}
+
+export const THEME_PAGES: ThemePage[] = [
   {
     key: 'home',
     label: 'Home page',
     icon: 'Home',
-    description: 'The wording, the sections and the row add-ons.',
-    groups: [
+    path: '/',
+    sections: [
       {
-        group: 'home',
-        title: 'Home page content',
-        hint: 'Anything left blank is simply not shown, rather than being filled in for you.',
+        key: 'hero',
+        label: 'Top of the page',
+        icon: 'LayoutTemplate',
+        keys: ['hero_gallery', 'hero_rotating_words', 'hero_overlay'],
+      },
+      {
+        key: 'figures',
+        label: 'Figures',
+        icon: 'BarChart3',
+        keys: [
+          'stats_show',
+          'stats_employers_auto', 'stats_employers_value', 'stats_employers_label',
+          'stats_placed_auto', 'stats_placed_value', 'stats_placed_label',
+          'stats_years_auto', 'stats_years_value', 'stats_years_label',
+          'stats_industries_auto', 'stats_industries_value', 'stats_industries_label',
+        ],
+        note:
+          'A figure of zero is left off the website rather than shown as nothing. ' +
+          'Employers served and candidates placed are counted from approved contacts, ' +
+          'so they stay hidden until there are some. Type a figure in beside them to ' +
+          'show that instead until the real count catches up.',
+      },
+      {
+        key: 'services',
+        label: 'What we do',
+        icon: 'Briefcase',
+        keys: ['services_show_home'],
+        manage: { href: '/admin/services', label: 'Edit the services' },
+      },
+      {
+        key: 'posts',
+        label: 'Posts',
+        icon: 'Megaphone',
+        keys: ['posts_square', 'posts_home_count', 'posts_show_meta'],
+        manage: { href: '/admin/posts', label: 'Write a post' },
+      },
+      {
+        key: 'gallery',
+        label: 'Photo gallery',
+        icon: 'Images',
+        keys: ['gallery_show_home', 'gallery_limit'],
+        manage: { href: '/admin/gallery', label: 'Add photographs' },
+      },
+      {
+        key: 'logos',
+        label: 'Client logos',
+        icon: 'Building2',
+        keys: ['logos_show_home', 'logos_height', 'logos_speed', 'logos_grayscale'],
+        manage: { href: '/admin/themes/logos', label: 'Add logos' },
+        note: 'The row stays hidden until at least one logo is added.',
+      },
+      {
+        key: 'team',
+        label: 'Our team',
+        icon: 'UserSquare2',
+        keys: ['team_show_home'],
+        manage: { href: '/admin/team', label: 'Edit the team' },
       },
     ],
   },
   {
-    key: 'figures',
-    label: 'Figures',
-    icon: 'BarChart3',
-    description: 'The numbers shown under the heading.',
-    groups: [
+    key: 'site',
+    label: 'Whole site',
+    icon: 'Globe',
+    path: '/',
+    sections: [
       {
-        group: 'stats',
-        title: 'Figures',
-        hint: 'Each figure is counted from the database, or typed in by hand.',
+        key: 'brand',
+        label: 'Logo and colours',
+        icon: 'Palette',
+        keys: ['logo_path', 'logo_alt_path', 'favicon_path', 'brand_color', 'accent_color'],
+      },
+      {
+        key: 'mode',
+        label: 'Light and dark',
+        icon: 'SunMoon',
+        keys: ['theme_dark_default', 'theme_follow_device', 'theme_toggle_show'],
+      },
+      {
+        key: 'style',
+        label: 'Style',
+        icon: 'Shapes',
+        keys: ['theme_corner_style'],
+      },
+      {
+        key: 'footer',
+        label: 'Footer',
+        icon: 'PanelBottom',
+        keys: ['copyright_start_year'],
       },
     ],
-  },
-  {
-    key: 'addons',
-    label: 'Row add-ons',
-    icon: 'LayoutGrid',
-    description: 'The photo gallery and the moving row of client logos.',
-    groups: [],
   },
 ];
 
 /**
- * The wording that can be changed by selecting it straight in the preview.
+ * Every settings key the editor is allowed to write.
  *
- * The key is the `data-field` attribute placed on the element in the website
- * markup; the label is what the editor calls it. A field not in this list is
- * not editable from the preview, whatever the page markup claims.
+ * The save action checks against this rather than against a settings group,
+ * because a section mixes keys from several groups, and because a posted form
+ * must never be able to reach a key this screen does not show.
+ */
+export const EDITABLE_KEYS: readonly string[] = THEME_PAGES.flatMap((p) =>
+  p.sections.flatMap((s) => s.keys)
+);
+
+export const isEditableKey = (key: string): boolean => EDITABLE_KEYS.includes(key);
+
+/**
+ * The wording that is changed by selecting it in the preview instead.
+ *
+ * These deliberately have no box in the side panel: a heading is edited by
+ * clicking the heading. The key is the `data-field` attribute on the element
+ * in the website markup.
  */
 export const PREVIEW_FIELDS: Record<string, { label: string; multiline?: boolean }> = {
   company_name: { label: 'Company name' },

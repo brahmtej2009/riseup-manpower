@@ -18,7 +18,6 @@ import { FeedArticle } from '@/components/site/FeedArticle';
 import { Reveal } from '@/components/ui/Reveal';
 import { ShareRow } from '@/components/site/ShareRow';
 
-export const revalidate = 60;
 
 export async function generateMetadata({
   params,

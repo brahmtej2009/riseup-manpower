@@ -6,7 +6,6 @@ import { PageHeader } from '@/components/site/PageHeader';
 import { TeamCard } from '@/components/cards';
 import { RevealGroup, RevealItem } from '@/components/ui/Reveal';
 
-export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Our team',

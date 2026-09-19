@@ -11,6 +11,19 @@ import { MaintenanceScreen } from '@/components/site/MaintenanceScreen';
 import { PageTransition } from '@/components/site/PageTransition';
 import { JsonLd, organizationSchema, websiteSchema, faqSchema } from '@/lib/seo';
 
+/**
+ * Rendered fresh on every request, deliberately.
+ *
+ * The maintenance check below reads the session cookie to let signed-in staff
+ * through. A statically generated page that suddenly starts reading cookies
+ * when maintenance is switched on is rejected by Next at runtime ("page
+ * changed from static to dynamic"), which is a 500 on the public site the
+ * moment that switch is used. Rendering on demand removes that whole class of
+ * problem, costs one local SQLite read per request, and has the side benefit
+ * that anything changed in the admin panel shows up immediately.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const site = getSiteInfo();
 

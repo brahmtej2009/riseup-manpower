@@ -4,7 +4,7 @@ import { requirePermission } from '@/lib/auth';
 import { can } from '@/lib/permissions';
 import { getClientLogos } from '@/lib/content';
 import { getSettings, num, bool, str } from '@/lib/settings';
-import { PageTitle, Panel, EmptyState } from '@/components/admin/ui';
+import { Panel, EmptyState } from '@/components/admin/ui';
 import { InfoNote } from '@/components/admin/interactive';
 import { LogoMarquee } from '@/components/home/LogoMarquee';
 import { LogoForm, LogoRow } from './LogoAdmin';
@@ -22,17 +22,25 @@ export default async function LogosAdminPage() {
   const shown = logos.filter((l) => l.is_visible === 1);
 
   return (
-    <>
-      <PageTitle
-        title="Client logos"
-        subtitle="The row of logos that moves steadily across the home page."
-        actions={
-          <Link href="/admin/themes" className="btn-outline btn-sm">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Themes
-          </Link>
-        }
-      />
+    /* This screen sits outside the admin sidebar, alongside the website
+       editor it is reached from, so it carries its own way back. */
+    <div className="min-h-[var(--admin-vh)] bg-surface-soft">
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface px-3 py-2">
+        <Link
+          href="/admin/themes"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[0.8125rem] font-medium text-ink-soft transition hover:bg-surface-soft hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Website editor
+        </Link>
+        <span className="h-5 w-px bg-line" aria-hidden />
+        <p className="font-display text-[0.9375rem] font-semibold text-ink">Client logos</p>
+        <span className="ml-auto text-[0.75rem] text-ink-muted">
+          The row that moves across the home page
+        </span>
+      </header>
+
+      <div className="p-4 sm:p-6">
 
       {/* Exactly what the website shows, so there is no guessing. */}
       {shown.length > 0 && (
@@ -117,6 +125,7 @@ export default async function LogosAdminPage() {
           )}
         </div>
       </div>
-    </>
+      </div>
+    </div>
   );
 }

@@ -31,6 +31,7 @@ import {
   step,
 } from './lib/paths.mjs';
 import { createBackup, restoreBackup, pruneBackups } from './lib/backup-core.mjs';
+import { spawn } from 'node:child_process';
 import { pendingMigrations, schemaVersion } from './lib/migrator.mjs';
 
 loadEnv();
@@ -49,9 +50,85 @@ const logFile = path.join(
 );
 const logLines = [];
 
+const progressFile = path.join(LOG_DIR, 'update-progress.json');
+let currentStep = 0;
+let currentStage = 'starting';
+
+/**
+ * A small machine-readable file the admin panel polls while this runs.
+ *
+ * The update restarts the site at the end, which means the browser request
+ * that started it can never be answered. So nothing is reported back through
+ * that request: progress is written here, and the panel reads it.
+ */
+function writeProgress(extra = {}) {
+  try {
+    fs.writeFileSync(
+      progressFile,
+      JSON.stringify(
+        {
+          running: true,
+          pid: process.pid,
+          step: currentStep,
+          total_steps: TOTAL_STEPS,
+          stage: currentStage,
+          started_at: startedAt.toISOString(),
+          updated_at: new Date().toISOString(),
+          log: logLines.slice(-400),
+          ...extra,
+        },
+        null,
+        2
+      )
+    );
+  } catch {
+    /* the log is a convenience, never a reason to fail an update */
+  }
+}
+
+/** Wraps the shared step() so progress is recorded as well as printed. */
+function stage(n, message, key) {
+  currentStep = n;
+  currentStage = key;
+  step(n, TOTAL_STEPS, message);
+  record(`stage: ${key}`);
+}
+
+/**
+ * Restarts the site so the new build is actually served.
+ *
+ * pm2 restarts this process's own parent, which kills this script too, so the
+ * restart is spawned detached and this process exits first. The final status
+ * is written before any of that, so the admin panel always has something to
+ * read once the site comes back.
+ */
+function restartSite() {
+  const name = process.env.PM2_APP_NAME || process.env.name || process.env.pm_id;
+  if (!name) {
+    say('  Not running under pm2 - restart the site yourself to serve the new build.');
+    return false;
+  }
+
+  try {
+    say(`  Restarting the site (pm2 ${name})...`);
+    const child = spawn('pm2', ['restart', String(name), '--update-env'], {
+      cwd: ROOT,
+      detached: true,
+      stdio: 'ignore',
+      shell: true,
+    });
+    child.unref();
+    return true;
+  } catch (e) {
+    warn(`Could not restart automatically: ${e.message}`);
+    return false;
+  }
+}
+
 function record(line) {
   logLines.push(`[${new Date().toISOString()}] ${line}`);
   fs.writeFileSync(logFile, logLines.join('\n') + '\n');
+  writeProgress();
 }
 function say(line) {
   console.log(line);
@@ -107,8 +184,7 @@ async function main() {
   const branch = process.env.UPDATE_BRANCH || git('rev-parse --abbrev-ref HEAD') || 'main';
 
   // -- 1 ---------------------------------------------------------------- check
-  step(1, TOTAL_STEPS, 'Checking the repository for a newer version');
-  record('step 1: check remote');
+  stage(1, 'Checking the repository for a newer version', 'check');
 
   const dirty = git('status --porcelain');
   if (dirty) {
@@ -141,6 +217,7 @@ async function main() {
 
   if (behind === 0) {
     ok(`Already up to date. Schema version ${currentSchema}.`);
+    writeProgress({ running: false, status: 'up-to-date', finished_at: new Date().toISOString() });
     process.exit(0);
   }
 
@@ -163,13 +240,13 @@ async function main() {
   }
 
   // -- 2 --------------------------------------------------------------- backup
-  step(2, TOTAL_STEPS, 'Backing up the database and uploaded files');
+  stage(2, 'Backing up the database and uploaded files', 'backup');
   const backup = createBackup(null, { label: 'pre-update' });
   ok(`Backup: ${backup.name} (schema v${backup.manifest.schema_version})`);
   record(`backup dir: ${backup.dir}`);
 
   // -- 3 ------------------------------------------------------------ checkpoint
-  step(3, TOTAL_STEPS, 'Recording the current version for rollback');
+  stage(3, 'Recording the current version for rollback', 'checkpoint');
   const rollbackPoint = localCommit;
   const hadNodeModules = fs.existsSync(path.join(ROOT, 'node_modules'));
   const lockBefore = readIfExists(path.join(ROOT, 'package-lock.json'));
@@ -181,14 +258,28 @@ async function main() {
   try {
     // -- 4 ------------------------------------------------------------- pull
     stageReached = 'pull';
-    step(4, TOTAL_STEPS, 'Downloading the new code');
-    run(`git merge --ff-only origin/${branch}`);
+    stage(4, 'Downloading the new code', 'pull');
+    try {
+      run(`git merge --ff-only origin/${branch}`);
+    } catch (e) {
+      // A fast-forward is refused when this copy has commits the remote does
+      // not, which happens if someone edited a file on the server or if the
+      // published history was rewritten. Saying so plainly beats a raw git
+      // error, because the fix is different in each case.
+      throw new Error(
+        `The new code could not be applied on top of what is here.\n` +
+          `This copy has ${ahead} commit(s) the remote does not.\n` +
+          `Either discard them:  git reset --hard origin/${branch}\n` +
+          `or keep them and merge by hand. Nothing has been changed.\n\n` +
+          e.message
+      );
+    }
     const newCommit = git('rev-parse HEAD');
     ok(`Now at ${newCommit.slice(0, 8)}`);
 
     // -- 5 --------------------------------------------------------- packages
     stageReached = 'install';
-    step(5, TOTAL_STEPS, 'Installing packages');
+    stage(5, 'Installing packages', 'install');
     const lockAfter = readIfExists(path.join(ROOT, 'package-lock.json'));
     if (!hadNodeModules || lockBefore !== lockAfter) {
       run('npm ci --no-audit --no-fund || npm install --no-audit --no-fund');
@@ -199,7 +290,7 @@ async function main() {
 
     // -- 6 ------------------------------------------------------- migrations
     stageReached = 'migrate';
-    step(6, TOTAL_STEPS, 'Applying database migrations');
+    stage(6, 'Applying database migrations', 'migrate');
     const dbm = Database(DB_PATH);
     dbm.pragma('journal_mode = WAL');
     const pending = pendingMigrations(dbm, MIGRATIONS_DIR);
@@ -217,16 +308,16 @@ async function main() {
     // -- 7 ------------------------------------------------------------ build
     stageReached = 'build';
     if (SKIP_BUILD) {
-      step(7, TOTAL_STEPS, 'Build skipped (--no-build)');
+      stage(7, 'Build skipped', 'build');
     } else {
-      step(7, TOTAL_STEPS, 'Building the new version');
+      stage(7, 'Building the new version', 'build');
       run('npx next build');
       ok('Build succeeded.');
     }
 
     // -- 8 ----------------------------------------------------------- verify
     stageReached = 'verify';
-    step(8, TOTAL_STEPS, 'Verifying');
+    stage(8, 'Verifying', 'verify');
     const dbv = Database(DB_PATH, { readonly: true });
     const integrity = dbv.pragma('integrity_check', { simple: true });
     const newSchema = schemaVersion(dbv);
@@ -245,7 +336,7 @@ async function main() {
 
     // -- 9 ------------------------------------------------------------ done
     stageReached = 'finalise';
-    step(9, TOTAL_STEPS, 'Finishing');
+    stage(9, 'Finishing', 'finalise');
     pruneBackups(Number(process.env.BACKUP_RETENTION || 10));
     writeStatus({
       status: 'success',
@@ -261,7 +352,22 @@ async function main() {
     say('');
     ok(`${c.bold}Update complete.${c.reset}`);
     say(`  ${rollbackPoint.slice(0, 8)} -> ${newCommit.slice(0, 8)}`);
-    say(`  Restart the site:  npm start`);
+
+    // The final state is written BEFORE the restart, because restarting kills
+    // this script along with the server that spawned it.
+    const restarting = !!(process.env.PM2_APP_NAME || process.env.pm_id || process.env.name);
+    writeProgress({
+      running: false,
+      status: 'success',
+      restarting,
+      finished_at: new Date().toISOString(),
+      from: rollbackPoint,
+      to: newCommit,
+    });
+
+    if (restartSite()) {
+      say('  The site is restarting. It will be back in a few seconds.');
+    }
     process.exit(0);
   } catch (err) {
     // ---------------------------------------------------------- ROLLBACK
@@ -323,6 +429,13 @@ async function main() {
       rollback: rollbackReport,
       finished_at: new Date().toISOString(),
       log: path.basename(logFile),
+    });
+
+    writeProgress({
+      running: false,
+      status: 'failed',
+      error: err.message,
+      finished_at: new Date().toISOString(),
     });
 
     say('');

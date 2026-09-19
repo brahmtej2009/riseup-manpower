@@ -6,6 +6,10 @@ import { SocialIcon } from './SocialIcon';
 
 export function Footer({ site }: { site: SiteInfo }) {
   const year = new Date().getFullYear();
+  // "© 2022 - 2026" once a start year is set, just "© 2026" before that.
+  const years = site.copyrightStartYear && site.copyrightStartYear < year
+    ? `${site.copyrightStartYear} - ${year}`
+    : String(year);
 
   return (
     <footer className="relative overflow-hidden border-t border-line bg-surface-soft text-ink-soft">
@@ -153,7 +157,7 @@ export function Footer({ site }: { site: SiteInfo }) {
         {/* Bottom bar */}
         <div className="flex flex-col gap-3 border-t border-line py-6 text-[0.8125rem] sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} {site.legalName}. All rights reserved.
+            © {years} {site.legalName}. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link
