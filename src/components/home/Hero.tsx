@@ -71,14 +71,14 @@ export function Hero({
     return () => clearInterval(t);
   }, [words.length, reduce]);
 
-  const rise = (delay: number) =>
-    reduce
-      ? {}
-      : {
-          initial: { opacity: 0, y: 22, filter: 'blur(6px)' },
-          animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
-          transition: { duration: 0.8, delay, ease: EASE },
-        };
+  // The same properties either way. Reduced motion only makes it instant:
+  // dropping the animation entirely would leave the server's opacity of zero
+  // in place on the visitor's screen. See Reveal.tsx.
+  const rise = (delay: number) => ({
+    initial: { opacity: 0, y: 22, filter: 'blur(6px)' },
+    animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+    transition: reduce ? { duration: 0 } : { duration: 0.8, delay, ease: EASE },
+  });
 
   return (
     <section className="relative isolate flex flex-col overflow-hidden bg-surface-page lg:min-h-hero">

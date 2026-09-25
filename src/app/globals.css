@@ -134,6 +134,22 @@
     zoom: calc(1 / var(--admin-zoom, 0.8));
   }
 
+  /*
+   * Nothing on the site may depend on an animation to become visible.
+   *
+   * Sections fade in from an opacity of zero, which the server writes into
+   * the markup. If scripts never run - switched off, blocked, or broken -
+   * that fade never happens and the page would stay blank. The class is
+   * added by the small script in the page head, so its absence means
+   * scripts are not running, and everything is simply shown.
+   */
+  html:not(.js) [style*='opacity:0'],
+  html:not(.js) [style*='opacity: 0'] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
   /* Square corners, if the company prefers them. */
   :root[data-corners='square'] {
     --radius: 0;

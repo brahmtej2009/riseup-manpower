@@ -48,10 +48,18 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
             key={photo.id}
             type="button"
             onClick={() => setOpen(i)}
-            initial={reduce ? undefined : { opacity: 0, y: 18 }}
+            // Reduced motion still animates, instantly: the server always
+            // renders the starting opacity of zero, so leaving the animation
+            // out would leave the photographs invisible. See Reveal.tsx.
+            initial={{ opacity: 0, y: 18 }}
+            animate={reduce ? { opacity: 1, y: 0 } : undefined}
             whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.5, delay: Math.min(i, 8) * 0.05, ease: [0.16, 1, 0.3, 1] }}
+            viewport={reduce ? undefined : { once: true, margin: '-60px' }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { duration: 0.5, delay: Math.min(i, 8) * 0.05, ease: [0.16, 1, 0.3, 1] }
+            }
             className="pan-frame group relative block aspect-[4/3] overflow-hidden rounded-2xl border border-line bg-surface-alt"
             aria-label={photo.title || `Open photograph ${i + 1}`}
           >
@@ -116,9 +124,9 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
                 key={current.id}
                 src={current.path}
                 alt={current.title || ''}
-                initial={reduce ? undefined : { opacity: 0, scale: 0.98 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
+                transition={reduce ? { duration: 0 } : { duration: 0.3 }}
                 className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
               />
 

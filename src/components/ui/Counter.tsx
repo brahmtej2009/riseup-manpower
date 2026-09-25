@@ -1,13 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useInView, useReducedMotion } from 'framer-motion';
 import { formatNumber } from '@/lib/utils';
 
 /**
  * Counts up to a number when it scrolls into view.
- * Uses an easing curve so it decelerates rather than stopping abruptly.
+ *
+ * The real figure is what is rendered to begin with, and the count-up is only
+ * an embellishment on top. That way the figure is right even when the count
+ * never runs: with JavaScript switched off, with reduced motion, in a
+ * background tab where the browser gives out no animation frames, or if the
+ * element is never reported as on screen. Showing "0 years in operation"
+ * because an animation did not start is far worse than not animating.
  */
+
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 export function Counter({
   value,
   duration = 1500,
@@ -22,13 +31,26 @@ export function Counter({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-40px' });
   const reduce = useReducedMotion();
-  const [display, setDisplay] = useState(0);
+  const [display, setDisplay] = useState(value);
+  const [counting, setCounting] = useState(false);
+
+  // Decided before the browser paints, so the figure never flashes.
+  useIsomorphicLayoutEffect(() => {
+    if (reduce || value <= 0 || document.hidden) return;
+    setDisplay(0);
+    setCounting(true);
+  }, [reduce, value]);
 
   useEffect(() => {
-    if (!inView) return;
-    if (reduce || value <= 0) {
-      setDisplay(value);
-      return;
+    if (!counting) return;
+
+    // If it is never reported as on screen, the figure is simply shown.
+    if (!inView) {
+      const giveUp = setTimeout(() => {
+        setCounting(false);
+        setDisplay(value);
+      }, 2500);
+      return () => clearTimeout(giveUp);
     }
 
     let frame = 0;
@@ -44,7 +66,7 @@ export function Counter({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [inView, value, duration, reduce]);
+  }, [counting, inView, value, duration]);
 
   return (
     <span ref={ref} className={className}>

@@ -31,6 +31,9 @@ export function themeScript({ defaultDark, followDevice, corners }: ThemeOptions
     `var m=(s==='dark'||s==='light')?s:${preferred};` +
     `r.setAttribute('data-theme',m);` +
     `r.setAttribute('data-corners','${corners === 'square' ? 'square' : 'rounded'}');` +
+    // Marks that scripts are running. The stylesheet uses it to reveal
+    // anything an animation would otherwise have had to fade in.
+    `r.classList.add('js');` +
     '}catch(e){}})()'
   );
 }

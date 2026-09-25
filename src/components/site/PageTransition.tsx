@@ -18,14 +18,13 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const reduce = useReducedMotion();
 
-  if (reduce) return <>{children}</>;
-
+  // Always the same element, whatever the motion preference: see Reveal.tsx.
   return (
     <motion.div
       key={pathname}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      transition={reduce ? { duration: 0 } : { duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
     >
       {children}
     </motion.div>

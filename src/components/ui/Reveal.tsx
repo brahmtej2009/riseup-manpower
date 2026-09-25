@@ -6,6 +6,13 @@ import type { ReactNode } from 'react';
 /**
  * Scroll-in animation used across the public site.
  *
+ * Reduced motion does NOT swap in a plain element. The server always renders
+ * the animated one (it cannot know the visitor's preference), and React keeps
+ * the server's inline `opacity: 0` when the client renders something else -
+ * which left the page invisible, and the figures reading zero, on any phone
+ * with reduced motion switched on. So the same element is always rendered,
+ * and reduced motion simply makes it appear at once.
+ *
  * Deliberately restrained: a short fade with a small rise, once only, and
  * nothing at all for visitors who have asked for reduced motion. The point is
  * that the page feels alive, not that it performs.
@@ -44,18 +51,14 @@ export function Reveal({
   const { x, y } = offsets[direction];
   const Tag = motion[as];
 
-  if (reduce) {
-    const Plain = as;
-    return <Plain className={className}>{children}</Plain>;
-  }
-
   return (
     <Tag
       className={className}
       initial={{ opacity: 0, x, y }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once, margin: '-60px 0px -60px 0px' }}
-      transition={{ duration, delay, ease: EASE }}
+      animate={reduce ? { opacity: 1, x: 0, y: 0 } : undefined}
+      whileInView={reduce ? undefined : { opacity: 1, x: 0, y: 0 }}
+      viewport={reduce ? undefined : { once, margin: '-60px 0px -60px 0px' }}
+      transition={reduce ? { duration: 0 } : { duration, delay, ease: EASE }}
     >
       {children}
     </Tag>
@@ -75,11 +78,10 @@ export function RevealGroup({
   delay?: number;
 }) {
   const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
 
   const variants: Variants = {
     hidden: {},
-    show: { transition: { staggerChildren: stagger, delayChildren: delay } },
+    show: { transition: { staggerChildren: reduce ? 0 : stagger, delayChildren: reduce ? 0 : delay } },
   };
 
   return (
@@ -87,8 +89,9 @@ export function RevealGroup({
       className={className}
       variants={variants}
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-60px 0px -60px 0px' }}
+      animate={reduce ? 'show' : undefined}
+      whileInView={reduce ? undefined : 'show'}
+      viewport={reduce ? undefined : { once: true, margin: '-60px 0px -60px 0px' }}
     >
       {children}
     </motion.div>
@@ -105,17 +108,13 @@ export function RevealItem({
   as?: 'div' | 'li' | 'article';
 }) {
   const reduce = useReducedMotion();
-  if (reduce) {
-    const Plain = as;
-    return <Plain className={className}>{children}</Plain>;
-  }
   const Tag = motion[as];
   return (
     <Tag
       className={className}
       variants={{
         hidden: { opacity: 0, y: 16 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
+        show: { opacity: 1, y: 0, transition: reduce ? { duration: 0 } : { duration: 0.5, ease: EASE } },
       }}
     >
       {children}
