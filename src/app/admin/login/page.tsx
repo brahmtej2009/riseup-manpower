@@ -25,7 +25,7 @@ export default async function LoginPage({
   const site = getSiteInfo();
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-[var(--admin-vh)] lg:grid-cols-2">
       {/* Form */}
       <div className="flex flex-col justify-center px-5 py-12 sm:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-sm">
